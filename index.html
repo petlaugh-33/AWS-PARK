@@ -6,7 +6,49 @@
     <title>Smart Parking Status</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Keep your existing styles */
+        .status-card {
+            transition: all 0.3s ease;
+        }
+        .status-AVAILABLE {
+            border-left: 5px solid #28a745;
+        }
+        .status-LIMITED {
+            border-left: 5px solid #ffc107;
+        }
+        .status-FULL {
+            border-left: 5px solid #dc3545;
+        }
+        .space-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .vehicle-type {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .update-animation {
+            animation: flash 1s;
+        }
+        .parking-visualization {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            margin-top: 1rem;
+        }
+        .vehicle-marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #007bff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes flash {
+            0% { background-color: #fff; }
+            50% { background-color: #e9ecef; }
+            100% { background-color: #fff; }
+        }
     </style>
 </head>
 <body>
@@ -42,7 +84,37 @@
                     </div>
                 </div>
 
-                <!-- Add History Table -->
+                <!-- Vehicle Type Analysis -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Vehicle Analysis</h5>
+                        <div class="row" id="vehicleTypes">
+                            <!-- Vehicle types will be inserted here -->
+                        </div>
+                        <div id="parkingVisualization" class="parking-visualization">
+                            <!-- Vehicle markers will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time Analysis -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Time Analysis</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p>Time of Day: <span id="timeOfDay">--</span></p>
+                                <p>Peak Hours: <span id="peakHours" class="badge">--</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p>Day of Week: <span id="dayOfWeek">--</span></p>
+                                <p>Average Occupancy: <span id="avgOccupancy">--%</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table -->
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">Status History</h5>
@@ -54,6 +126,7 @@
                                         <th>Available</th>
                                         <th>Occupied</th>
                                         <th>Status</th>
+                                        <th>Details</th>
                                     </tr>
                                 </thead>
                                 <tbody id="historyTable">
@@ -65,7 +138,7 @@
             </div>
 
             <div class="col-md-4">
-                <div class="card shadow-sm">
+                <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Connection Status</h5>
                         <div id="connectionStatus" class="alert alert-secondary">
@@ -74,6 +147,18 @@
                         <button class="btn btn-primary btn-sm" onclick="manualReconnect()">
                             Reconnect
                         </button>
+                    </div>
+                </div>
+
+                <!-- Analysis Details -->
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Analysis Details</h5>
+                        <div id="analysisDetails">
+                            <p>Parking Lot Detection: <span id="isParkingLot" class="badge">--</span></p>
+                            <p>Outdoor Detection: <span id="isOutdoor" class="badge">--</span></p>
+                            <p>Average Confidence: <span id="avgConfidence">--%</span></p>
+                        </div>
                     </div>
                 </div>
             </div>
