@@ -81,142 +81,162 @@
     </div>
 
     <script>
-        let socket;
-        let isConnecting = false;
-        let reconnectAttempts = 0;
-        const MAX_RECONNECT_ATTEMPTS = 5;
-        let history = [];
-        const MAX_HISTORY = 10;
+    let socket;
+    let isConnecting = false;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    let history = [];
+    const MAX_HISTORY = 10;
 
-        function connect() {
-            if (isConnecting) return;
-            isConnecting = true;
+    function connect() {
+        if (isConnecting) return;
+        isConnecting = true;
+        
+        const connectionStatus = document.getElementById('connectionStatus');
+        connectionStatus.className = 'alert alert-secondary';
+        connectionStatus.textContent = 'Connecting...';
+
+        socket = new WebSocket('wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production');
+
+        socket.onopen = () => {
+            isConnecting = false;
+            reconnectAttempts = 0;
+            connectionStatus.className = 'alert alert-success';
+            connectionStatus.textContent = 'Connected';
+        };
+
+        socket.onclose = () => {
+            isConnecting = false;
+            connectionStatus.className = 'alert alert-warning';
+            connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
             
-            const connectionStatus = document.getElementById('connectionStatus');
-            connectionStatus.className = 'alert alert-secondary';
-            connectionStatus.textContent = 'Connecting...';
-
-            socket = new WebSocket('wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production');
-
-            socket.onopen = () => {
-                isConnecting = false;
-                reconnectAttempts = 0;
-                connectionStatus.className = 'alert alert-success';
-                connectionStatus.textContent = 'Connected';
-            };
-
-            socket.onclose = () => {
-                isConnecting = false;
-                connectionStatus.className = 'alert alert-warning';
-                connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
-                
-                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                    reconnectAttempts++;
-                    setTimeout(connect, 2000);
-                } else {
-                    connectionStatus.className = 'alert alert-danger';
-                    connectionStatus.textContent = 'Connection failed - Please refresh the page';
-                }
-            };
-
-            socket.onerror = (error) => {
-                isConnecting = false;
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                setTimeout(connect, 2000);
+            } else {
                 connectionStatus.className = 'alert alert-danger';
-                connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
-                console.error('WebSocket error:', error);
-            };
+                connectionStatus.textContent = 'Connection failed - Please refresh the page';
+            }
+        };
 
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
+        socket.onerror = (error) => {
+            isConnecting = false;
+            connectionStatus.className = 'alert alert-danger';
+            connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+            console.error('WebSocket error:', error);
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Received data:', data);
+                if (data.availableSpaces !== undefined) {
                     updateStatus(data);
                     addToHistory(data);
-                } catch (error) {
-                    console.error('Error processing message:', error);
                 }
-            };
-        }
-
-        function startHeartbeat() {
-            setInterval(() => {
-                if (socket && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({ action: 'heartbeat' }));
-                }
-            }, 30000);
-        }
-
-        function monitorConnection() {
-            setInterval(() => {
-                if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
-                    connect();
-                }
-            }, 5000);
-        }
-
-        function manualReconnect() {
-            reconnectAttempts = 0;
-            if (socket) {
-                socket.close();
+            } catch (error) {
+                console.error('Error processing message:', error);
             }
-            connect();
+        };
+    }
+
+    function startHeartbeat() {
+        setInterval(() => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ action: 'heartbeat' }));
+            }
+        }, 30000);
+    }
+
+    function monitorConnection() {
+        setInterval(() => {
+            if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
+                connect();
+            }
+        }, 5000);
+    }
+
+    function manualReconnect() {
+        reconnectAttempts = 0;
+        history = []; // Clear history
+        if (socket) {
+            socket.close();
+        }
+        connect();
+    }
+
+    function updateStatus(data) {
+        const mainStatus = document.getElementById('mainStatus');
+        mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
+        
+        document.getElementById('availableSpaces').textContent = data.availableSpaces;
+        document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
+        document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
+        
+        const bar = document.getElementById('occupancyBar');
+        bar.style.width = `${data.occupancyRate}%`;
+        
+        if (data.occupancyRate < 70) {
+            bar.className = 'progress-bar bg-success';
+        } else if (data.occupancyRate < 90) {
+            bar.className = 'progress-bar bg-warning';
+        } else {
+            bar.className = 'progress-bar bg-danger';
         }
 
-        function updateStatus(data) {
-            const mainStatus = document.getElementById('mainStatus');
-            mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-            
-            document.getElementById('availableSpaces').textContent = data.availableSpaces;
-            document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-            document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-            
-            const bar = document.getElementById('occupancyBar');
-            bar.style.width = `${data.occupancyRate}%`;
-            
-            if (data.occupancyRate < 70) {
-                bar.className = 'progress-bar bg-success';
-            } else if (data.occupancyRate < 90) {
-                bar.className = 'progress-bar bg-warning';
-            } else {
-                bar.className = 'progress-bar bg-danger';
+        document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
+        
+        mainStatus.classList.add('update-animation');
+        setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+    }
+
+    function addToHistory(data) {
+        try {
+            // Validate data before adding to history
+            if (!data.lastUpdated || !data.availableSpaces || !data.occupiedSpaces || !data.parkingStatus) {
+                console.error('Invalid data received:', data);
+                return;
             }
 
-            document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
-            
-            mainStatus.classList.add('update-animation');
-            setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-        }
-
-        function addToHistory(data) {
             const time = new Date(data.lastUpdated).toLocaleTimeString();
-            history.unshift({
-                time,
-                available: data.availableSpaces,
-                occupied: data.occupiedSpaces,
-                status: data.parkingStatus
-            });
+            
+            // Only add to history if we have valid data
+            if (time !== 'Invalid Date') {
+                history.unshift({
+                    time: time,
+                    available: data.availableSpaces,
+                    occupied: data.occupiedSpaces,
+                    status: data.parkingStatus
+                });
 
-            if (history.length > MAX_HISTORY) {
-                history.pop();
+                if (history.length > MAX_HISTORY) {
+                    history.pop();
+                }
+
+                const tbody = document.getElementById('historyTable');
+                tbody.innerHTML = history
+                    .filter(entry => entry.time && entry.available && entry.occupied && entry.status)
+                    .map(entry => `
+                        <tr>
+                            <td>${entry.time}</td>
+                            <td>${entry.available}</td>
+                            <td>${entry.occupied}</td>
+                            <td><span class="badge bg-${entry.status === 'AVAILABLE' ? 'success' : entry.status === 'LIMITED' ? 'warning' : 'danger'}">${entry.status}</span></td>
+                        </tr>
+                    `).join('');
             }
-
-            const tbody = document.getElementById('historyTable');
-            tbody.innerHTML = history.map(entry => `
-                <tr>
-                    <td>${entry.time}</td>
-                    <td>${entry.available}</td>
-                    <td>${entry.occupied}</td>
-                    <td><span class="badge bg-${entry.status === 'AVAILABLE' ? 'success' : entry.status === 'LIMITED' ? 'warning' : 'danger'}">${entry.status}</span></td>
-                </tr>
-            `).join('');
+        } catch (error) {
+            console.error('Error adding to history:', error);
         }
+    }
 
-        // Initialize everything when page loads
-        window.addEventListener('load', () => {
-            connect();
-            startHeartbeat();
-            monitorConnection();
-        });
-    </script>
+    // Initialize everything when page loads
+    window.addEventListener('load', () => {
+        connect();
+        startHeartbeat();
+        monitorConnection();
+    });
+</script>
 </body>
 </html>
     
