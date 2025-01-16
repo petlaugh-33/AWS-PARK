@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parking Lot Status</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .available {
+            color: green;
+        }
+        .full {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Parking Lot Status</h1>
+    <div class="status-card">
+        <p>Total Spaces: <span id="totalSpaces">--</span></p>
+        <p>Available Spaces: <span id="availableSpaces" class="available">--</span></p>
+        <p>Last Updated: <span id="lastUpdated">--</span></p>
+    </div>
+
+    <script>
+        function updateStatus() {
+            $.ajax({
+                url: 'YOUR_API_GATEWAY_URL',  // You'll need to replace this with your actual API endpoint
+                method: 'GET',
+                success: function(response) {
+                    const available = response.totalSpaces - response.occupiedSpaces;
+                    $('#totalSpaces').text(response.totalSpaces);
+                    $('#availableSpaces')
+                        .text(available)
+                        .removeClass('available full')
+                        .addClass(available > 0 ? 'available' : 'full');
+                    $('#lastUpdated').text(new Date(response.lastUpdated).toLocaleString());
+                },
+                error: function(err) {
+                    console.error('Error fetching parking status:', err);
+                }
+            });
+        }
+
+        // Update status every 30 seconds
+        updateStatus();
+        setInterval(updateStatus, 30000);
+    </script>
+</body>
+</html>
