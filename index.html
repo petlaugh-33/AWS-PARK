@@ -231,12 +231,21 @@
     }
 
     // Initialize everything when page loads
-    window.addEventListener('load', () => {
-        connect();
-        startHeartbeat();
-        monitorConnection();
-    });
-</script>
+   
+        // Initialize everything when page loads
+        window.addEventListener('load', () => {
+            connect();
+            startHeartbeat();
+            monitorConnection();
+        });
+
+        // Handle page unload/close
+        window.addEventListener('beforeunload', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
+        });
+    </script>
 </body>
 </html>
     
