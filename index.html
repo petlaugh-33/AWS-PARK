@@ -96,7 +96,19 @@
                         </div>
                     </div>
                 </div>
-
+                
+    <!-- Historical Data -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Historical Analysis</h5>
+        <div class="btn-group mb-3">
+            <button class="btn btn-outline-primary" onclick="loadHistoricalData('daily')">Daily</button>
+            <button class="btn btn-outline-primary" onclick="loadHistoricalData('weekly')">Weekly</button>
+            <button class="btn btn-outline-primary" onclick="loadHistoricalData('monthly')">Monthly</button>
+        </div>
+        <canvas id="occupancyChart"></canvas>
+    </div>
+</div>
                 <!-- Time Analysis -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
@@ -330,6 +342,64 @@
                 socket.close();
             }
         });
+        
+        script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+let occupancyChart;
+
+async function loadHistoricalData(timeframe) {
+    try {
+        const response = await fetch(`YOUR_API_ENDPOINT/historical?type=${timeframe}`);
+        const data = await response.json();
+        updateChart(data, timeframe);
+    } catch (error) {
+        console.error('Error loading historical data:', error);
+    }
+}
+
+function updateChart(data, timeframe) {
+    const ctx = document.getElementById('occupancyChart').getContext('2d');
+    
+    if (occupancyChart) {
+        occupancyChart.destroy();
+    }
+    
+    const labels = timeframe === 'daily' 
+        ? Array.from({length: 24}, (_, i) => `${i}:00`)
+        : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    const chartData = timeframe === 'daily' ? data.hourly : data.daily;
+    
+    occupancyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average Occupancy Rate',
+                data: labels.map(label => chartData[timeframe === 'daily' 
+                    ? parseInt(label) 
+                    : labels.indexOf(label)] || 0),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+// Load daily data by default
+document.addEventListener('DOMContentLoaded', () => {
+    loadHistoricalData('daily');
+});
+
     </script>
 </body>
 </html>
