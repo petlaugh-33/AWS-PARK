@@ -552,14 +552,130 @@
             }
         }
     }
+       function initializeReservationSystem() {
+    // Set min datetime for reservation inputs
+    const now = new Date();
+    const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    
+    document.getElementById('startTime').min = minDateTime;
+    document.getElementById('endTime').min = minDateTime;
+    
+    // Add form submit handler
+    document.getElementById('reservationForm').addEventListener('submit', handleReservationSubmit);
+    
+    // Load existing reservations
+    loadUserReservations();
+}
+
+async function handleReservationSubmit(event) {
+    event.preventDefault();
+    
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    
+    try {
+        const response = await fetch(`${API_ENDPOINT}/reservations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                startTime,
+                endTime
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to create reservation');
+        }
+        
+        const reservation = await response.json();
+        document.getElementById('reservationForm').reset();
+        loadUserReservations();
+        
+    } catch (error) {
+        const errorElement = document.getElementById('reservationError');
+        errorElement.textContent = error.message;
+        errorElement.style.display = 'block';
+    }
+}
+
+async function loadUserReservations() {
+    try {
+        const response = await fetch(`${API_ENDPOINT}/reservations`);
+        if (!response.ok) {
+            throw new Error('Failed to load reservations');
+        }
+        
+        const reservations = await response.json();
+        updateReservationsTable(reservations);
+        
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+    }
+}
+
+function updateReservationsTable(reservations) {
+    const tbody = document.getElementById('reservationsTable');
+    tbody.innerHTML = reservations
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+        .map(reservation => `
+            <tr>
+                <td>${new Date(reservation.startTime).toLocaleString()}</td>
+                <td>${new Date(reservation.endTime).toLocaleString()}</td>
+                <td>${reservation.spotNumber}</td>
+                <td>
+                    <span class="badge bg-${getStatusColor(reservation.status)}">
+                        ${reservation.status}
+                    </span>
+                </td>
+                <td>
+                    ${reservation.status === 'CONFIRMED' ? 
+                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
+                            Cancel
+                        </button>` : 
+                        ''}
+                </td>
+            </tr>
+        `).join('');
+}
+
+function getStatusColor(status) {
+    switch (status) {
+        case 'CONFIRMED': return 'success';
+        case 'PENDING': return 'warning';
+        case 'CANCELLED': return 'danger';
+        case 'COMPLETED': return 'info';
+        default: return 'secondary';
+    }
+}
+
+async function cancelReservation(reservationId) {
+    try {
+        const response = await fetch(`${API_ENDPOINT}/reservations/${reservationId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to cancel reservation');
+        }
+        
+        loadUserReservations();
+        
+    } catch (error) {
+        console.error('Error cancelling reservation:', error);
+    }
+}
 
     // Initialize everything when page loads
     window.addEventListener('load', () => {
-        initializeFromStorage();
-        connect();
-        startHeartbeat();
-        monitorConnection();
-    });
+    initializeFromStorage();
+    connect();
+    startHeartbeat();
+    monitorConnection();
+    initializeReservationSystem();  // Add this line
+});
+
 
     // Handle page unload/close
     window.addEventListener('beforeunload', () => {
