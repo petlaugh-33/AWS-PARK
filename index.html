@@ -127,6 +127,30 @@
             </div>
         </form>
 
+        <!-- Reservations Table -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">My Reservations</h5>
+        <div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Spot</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="reservationsTable">
+                    <!-- Reservations will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+        
         <!-- My Reservations -->
         <h6 class="mt-4">My Reservations</h6>
         <div class="table-responsive">
@@ -239,7 +263,11 @@
     const MAX_HISTORY = 10;
     let occupancyChart;
     const RESERVATION_REFRESH_INTERVAL = 30000; // 30 seconds
-
+    const reservationForm = document.getElementById('reservationForm');
+    if (reservationForm) {
+        reservationForm.addEventListener('submit', handleReservationSubmit);
+    }
+       
     const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
     const RESERVATIONS_API_ENDPOINT = 'https://3t7gznnmib.execute-api.us-east-1.amazonaws.com/prod';
        
@@ -604,20 +632,22 @@ async function handleReservationSubmit(event) {
             throw new Error(data.error || 'Failed to create reservation');
         }
 
-        // Success - clear form and reload reservations
+        // Success handling
         document.getElementById('reservationForm').reset();
         const errorElement = document.getElementById('reservationError');
         if (errorElement) {
             errorElement.style.display = 'none';
         }
-        await loadUserReservations(); // Reload the reservations table
-        
-        // Optional: Show success message
+
+        // Show success message
         const successMessage = document.createElement('div');
         successMessage.className = 'alert alert-success mt-3';
         successMessage.textContent = 'Reservation created successfully!';
         document.getElementById('reservationForm').appendChild(successMessage);
-        setTimeout(() => successMessage.remove(), 3000); // Remove after 3 seconds
+        setTimeout(() => successMessage.remove(), 3000);
+
+        // Reload reservations
+        await loadUserReservations();
         
     } catch (error) {
         console.error('Reservation error:', error);
@@ -630,30 +660,51 @@ async function handleReservationSubmit(event) {
 }
 
 
+
 async function loadUserReservations() {
     try {
-        const errorElement = document.getElementById('reservationsError');
-        errorElement.style.display = 'none';
-        
+        console.log('Loading reservations...'); // Debug log
         const response = await fetch(`${API_ENDPOINT}/reservations`);
-        if (!response.ok) {
-            throw new Error('Failed to load reservations');
-        }
+        console.log('Response status:', response.status); // Debug log
         
-        const reservations = await response.json();
+        const data = await response.json();
+        console.log('Reservations data:', data); // Debug log
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load reservations');
+        }
+
+        // Make sure data is an array
+        const reservations = Array.isArray(data) ? data : [];
         updateReservationsTable(reservations);
         
     } catch (error) {
         console.error('Error loading reservations:', error);
         const errorElement = document.getElementById('reservationsError');
-        errorElement.textContent = 'Failed to load reservations. Please try again later.';
-        errorElement.style.display = 'block';
+        if (errorElement) {
+            errorElement.textContent = 'Failed to load reservations. Please try again later.';
+            errorElement.style.display = 'block';
+        }
     }
 }
 
 function updateReservationsTable(reservations) {
     const tbody = document.getElementById('reservationsTable');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('Reservations table not found');
+        return;
+    }
+
+    console.log('Updating table with reservations:', reservations); // Debug log
+
+    if (reservations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center">No reservations found</td>
+            </tr>
+        `;
+        return;
+    }
 
     tbody.innerHTML = reservations
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
@@ -679,7 +730,12 @@ function updateReservationsTable(reservations) {
 }
 
 function formatDateTime(dateString) {
-    return new Date(dateString).toLocaleString();
+    try {
+        return new Date(dateString).toLocaleString();
+    } catch (error) {
+        console.error('Error formatting date:', dateString, error);
+        return dateString;
+    }
 }
 
 function getStatusColor(status) {
@@ -716,8 +772,9 @@ async function cancelReservation(reservationId) {
     startHeartbeat();
     monitorConnection();
     loadUserReservations();
-    startReservationRefresh(); // Add this line
+    setInterval(loadUserReservations, 30000); // Add here - Refresh every 30 seconds
 });
+
 
 
     // Handle page unload/close
