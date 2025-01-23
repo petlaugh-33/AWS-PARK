@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Parking Status</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .status-card {
             transition: all 0.3s ease;
@@ -51,6 +52,7 @@
         }
     </style>
 </head>
+    
 <body>
     <div class="container py-4">
         <header class="pb-3 mb-4 border-bottom">
@@ -59,6 +61,7 @@
 
         <div class="row">
             <div class="col-md-8">
+                <!-- Main Status Card -->
                 <div class="status-card card shadow-sm mb-4" id="mainStatus">
                     <div class="card-body">
                         <div class="row">
@@ -84,7 +87,7 @@
                     </div>
                 </div>
 
-                <!-- Vehicle Type Analysis -->
+                <!-- Vehicle Analysis Card -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Vehicle Analysis</h5>
@@ -96,20 +99,23 @@
                         </div>
                     </div>
                 </div>
-                
-    <!-- Historical Data -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Historical Analysis</h5>
-        <div class="btn-group mb-3">
-            <button class="btn btn-outline-primary" onclick="loadHistoricalData('daily')">Daily</button>
-            <button class="btn btn-outline-primary" onclick="loadHistoricalData('weekly')">Weekly</button>
-            <button class="btn btn-outline-primary" onclick="loadHistoricalData('monthly')">Monthly</button>
-        </div>
-        <canvas id="occupancyChart"></canvas>
-    </div>
-</div>
-                <!-- Time Analysis -->
+
+                <!-- Historical Analysis Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Historical Analysis</h5>
+                        <div id="chartError" class="alert alert-danger" style="display:none;"></div>
+                        <div class="btn-group mb-3">
+                            <button class="btn btn-outline-primary" onclick="loadHistoricalData('daily')">Daily</button>
+                            <button class="btn btn-outline-primary" onclick="loadHistoricalData('weekly')">Weekly</button>
+                            <button class="btn btn-outline-primary" onclick="loadHistoricalData('monthly')">Monthly</button>
+                        </div>
+                        <div id="peakInfo" class="mb-2"></div>
+                        <canvas id="occupancyChart"></canvas>
+                       </div>
+                </div>
+
+                <!-- Time Analysis Card -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Time Analysis</h5>
@@ -126,7 +132,7 @@
                     </div>
                 </div>
 
-                <!-- History Table -->
+                <!-- History Table Card -->
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">Status History</h5>
@@ -138,7 +144,6 @@
                                         <th>Available</th>
                                         <th>Occupied</th>
                                         <th>Status</th>
-                                        <th>Details</th>
                                     </tr>
                                 </thead>
                                 <tbody id="historyTable">
@@ -149,7 +154,8 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
+        <div class="col-md-4">
+                <!-- Connection Status Card -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
                         <h5 class="card-title">Connection Status</h5>
@@ -162,7 +168,7 @@
                     </div>
                 </div>
 
-                <!-- Analysis Details -->
+                <!-- Analysis Details Card -->
                 <div class="card shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">Analysis Details</h5>
@@ -178,162 +184,244 @@
     </div>
 
     <script>
-    let socket;
-    let isConnecting = false;
-    let reconnectAttempts = 0;
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    let history = [];
-    const MAX_HISTORY = 10;
+        let socket;
+        let isConnecting = false;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        let history = [];
+        const MAX_HISTORY = 10;
+        let occupancyChart;
 
-    function connect() {
-        if (isConnecting) return;
-        isConnecting = true;
-        
-        const connectionStatus = document.getElementById('connectionStatus');
-        connectionStatus.className = 'alert alert-secondary';
-        connectionStatus.textContent = 'Connecting...';
+        const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
 
-        socket = new WebSocket('wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production');
-
-        socket.onopen = () => {
-            isConnecting = false;
-            reconnectAttempts = 0;
-            connectionStatus.className = 'alert alert-success';
-            connectionStatus.textContent = 'Connected';
-        };
-
-        socket.onclose = () => {
-            isConnecting = false;
-            connectionStatus.className = 'alert alert-warning';
-            connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+        function connect() {
+            if (isConnecting) return;
+            isConnecting = true;
             
-            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                reconnectAttempts++;
-                setTimeout(connect, 2000);
-            } else {
+            const connectionStatus = document.getElementById('connectionStatus');
+            connectionStatus.className = 'alert alert-secondary';
+            connectionStatus.textContent = 'Connecting...';
+
+            socket = new WebSocket('wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production');
+
+            socket.onopen = () => {
+                isConnecting = false;
+                reconnectAttempts = 0;
+                connectionStatus.className = 'alert alert-success';
+                connectionStatus.textContent = 'Connected';
+            };
+
+            socket.onclose = () => {
+                isConnecting = false;
+                connectionStatus.className = 'alert alert-warning';
+                connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+                
+                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                    reconnectAttempts++;
+                    setTimeout(connect, 2002000);
+                } else {
+                    connectionStatus.className = 'alert alert-danger';
+                    connectionStatus.textContent = 'Connection failed - Please refresh the page';
+                }
+            };
+
+            socket.onerror = (error) => {
+                isConnecting = false;
                 connectionStatus.className = 'alert alert-danger';
-                connectionStatus.textContent = 'Connection failed - Please refresh the page';
+                connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+                console.error('WebSocket error:', error);
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('Received data:', data);
+                    if (data.availableSpaces !== undefined) {
+                        updateStatus(data);
+                        addToHistory(data);
+                    }
+                } catch (error) {
+                    console.error('Error processing message:', error);
+                }
+            };
+        }
+
+
+     function startHeartbeat() {
+            setInterval(() => {
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({ action: 'heartbeat' }));
+                }
+            }, 30000);
+        }
+
+        function monitorConnection() {
+            setInterval(() => {
+                if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
+                    connect();
+                }
+            }, 5000);
+        }
+
+        function manualReconnect() {
+            reconnectAttempts = 0;
+            history = []; // Clear history
+            if (socket) {
+                socket.close();
             }
-        };
+            connect();
+        }
 
-        socket.onerror = (error) => {
-            isConnecting = false;
-            connectionStatus.className = 'alert alert-danger';
-            connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
-            console.error('WebSocket error:', error);
-        };
+        function updateStatus(data) {
+            const mainStatus = document.getElementById('mainStatus');
+            mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
+            
+            document.getElementById('availableSpaces').textContent = data.availableSpaces;
+            document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
+            document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
+            
+            const bar = document.getElementById('occupancyBar');
+            bar.style.width = `${data.occupancyRate}%`;
+            
+            if (data.occupancyRate < 70) {
+                bar.className = 'progress-bar bg-success';
+            } else if (data.occupancyRate < 90) {
+                bar.className = 'progress-bar bg-warning';
+            } else {
+                bar.className = 'progress-bar bg-danger';
+            }
 
-        socket.onmessage = (event) => {
+            document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
+            
+            mainStatus.classList.add('update-animation');
+            setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+        }
+
+        async function loadHistoricalData(timeframe) {
             try {
-                const data = JSON.parse(event.data);
-                console.log('Received data:', data);
-                if (data.availableSpaces !== undefined) {
-                    updateStatus(data);
-                    addToHistory(data);
+                const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                updateChart(data, timeframe);
+            } catch (error) {
+                console.error('Error loading historical data:', error);
+                const chartError = document.getElementById('chartError');
+                if (chartError) {
+                    chartError.textContent = `Failed to load historical data: ${error.message}`;
+                    chartError.style.display = 'block';
+                }
+            }
+        }
+
+        function updateChart(data, timeframe) {
+            const ctx = document.getElementById('occupancyChart').getContext('2d');
+            
+            if (occupancyChart) {
+                occupancyChart.destroy();
+            }
+            
+            const labels = timeframe === 'daily' 
+                ? Array.from({length: 24}, (_, i) => `${i}:00`)
+                : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            
+            const chartData = timeframe === 'daily' ? data.hourly : data.daily;
+            
+            occupancyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Occupancy Rate',
+                        data: labels.map(label => {
+                            const key = timeframe === 'daily' ? label.split(':')[0] : labels.indexOf(label).toString();
+                            return chartData[key] || 0;
+                        }),
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Occupancy Rate (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: timeframe === 'daily' ? 'Hour of Day' : 'Day of Week'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Parking Occupancy - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} View`
+                        }
+                    }
+                }
+            });
+
+            // Update peak time information if available
+            if (data.peak) {
+                const peakInfo = document.getElementById('peakInfo');
+                if (peakInfo) {
+                    peakInfo.textContent = `Peak: ${data.peak.peak.toFixed(2)}%, Off-Peak: ${data.peak.offPeak.toFixed(2)}%`;
+                }
+            }
+        }
+
+        function addToHistory(data) {
+            try {
+                if (!data.lastUpdated || !data.availableSpaces || !data.occupiedSpaces || !data.parkingStatus) {
+                    console.error('Invalid data received:', data);
+                    return;
+                }
+
+                const time = new Date(data.lastUpdated).toLocaleTimeString();
+                
+                if (time !== 'Invalid Date') {
+                    history.unshift({
+                        time: time,
+                        available: data.availableSpaces,
+                        occupied: data.occupiedSpaces,
+                        status: data.parkingStatus
+                    });
+
+                    if (history.length > MAX_HISTORY) {
+                        history.pop();
+                    }
+
+                    const tbody = document.getElementById('historyTable');
+                    tbody.innerHTML = history
+                        .filter(entry => entry.time && entry.available && entry.occupied && entry.status)
+                        .map(entry => `
+                            <tr>
+                                <td>${entry.time}</td>
+                                <td>${entry.available}</td>
+                                <td>${entry.occupied}</td>
+                                <td><span class="badge bg-${entry.status === 'AVAILABLE' ? 'success' : entry.status === 'LIMITED' ? 'warning' : 'danger'}">${entry.status}</span></td>
+                            </tr>
+                        `).join('');
                 }
             } catch (error) {
-                console.error('Error processing message:', error);
+                console.error('Error adding to history:', error);
             }
-        };
-    }
-
-    function startHeartbeat() {
-        setInterval(() => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ action: 'heartbeat' }));
-            }
-        }, 30000);
-    }
-
-    function monitorConnection() {
-        setInterval(() => {
-            if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
-                connect();
-            }
-        }, 5000);
-    }
-
-    function manualReconnect() {
-        reconnectAttempts = 0;
-        history = []; // Clear history
-        if (socket) {
-            socket.close();
-        }
-        connect();
-    }
-
-    function updateStatus(data) {
-        const mainStatus = document.getElementById('mainStatus');
-        mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-        
-        document.getElementById('availableSpaces').textContent = data.availableSpaces;
-        document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-        document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-        
-        const bar = document.getElementById('occupancyBar');
-        bar.style.width = `${data.occupancyRate}%`;
-        
-        if (data.occupancyRate < 70) {
-            bar.className = 'progress-bar bg-success';
-        } else if (data.occupancyRate < 90) {
-            bar.className = 'progress-bar bg-warning';
-        } else {
-            bar.className = 'progress-bar bg-danger';
         }
 
-        document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
-        
-        mainStatus.classList.add('update-animation');
-        setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-    }
-
-    function addToHistory(data) {
-        try {
-            // Validate data before adding to history
-            if (!data.lastUpdated || !data.availableSpaces || !data.occupiedSpaces || !data.parkingStatus) {
-                console.error('Invalid data received:', data);
-                return;
-            }
-
-            const time = new Date(data.lastUpdated).toLocaleTimeString();
-            
-            // Only add to history if we have valid data
-            if (time !== 'Invalid Date') {
-                history.unshift({
-                    time: time,
-                    available: data.availableSpaces,
-                    occupied: data.occupiedSpaces,
-                    status: data.parkingStatus
-                });
-
-                if (history.length > MAX_HISTORY) {
-                    history.pop();
-                }
-
-                const tbody = document.getElementById('historyTable');
-                tbody.innerHTML = history
-                    .filter(entry => entry.time && entry.available && entry.occupied && entry.status)
-                    .map(entry => `
-                        <tr>
-                            <td>${entry.time}</td>
-                            <td>${entry.available}</td>
-                            <td>${entry.occupied}</td>
-                            <td><span class="badge bg-${entry.status === 'AVAILABLE' ? 'success' : entry.status === 'LIMITED' ? 'warning' : 'danger'}">${entry.status}</span></td>
-                        </tr>
-                    `).join('');
-            }
-        } catch (error) {
-            console.error('Error adding to history:', error);
-        }
-    }
-
-    // Initialize everything when page loads
-   
         // Initialize everything when page loads
         window.addEventListener('load', () => {
             connect();
             startHeartbeat();
             monitorConnection();
+            loadHistoricalData('daily');
         });
 
         // Handle page unload/close
@@ -342,74 +430,8 @@
                 socket.close();
             }
         });
-        
-        script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-let occupancyChart;
-
-const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
-
-async function loadHistoricalData(timeframe) {
-    try {
-        const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        updateChart(data, timeframe);
-    } catch (error) {
-        console.error('Error loading historical data:', error);
-        // Optional: Show error to user
-        document.getElementById('chartError')?.textContent = 
-            `Failed to load historical data: ${error.message}`;
-    }
-}
-
-function updateChart(data, timeframe) {
-    const ctx = document.getElementById('occupancyChart').getContext('2d');
-    
-    if (occupancyChart) {
-        occupancyChart.destroy();
-    }
-    
-    const labels = timeframe === 'daily' 
-        ? Array.from({length: 24}, (_, i) => `${i}:00`)
-        : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
-    const chartData = timeframe === 'daily' ? data.hourly : data.daily;
-    
-    occupancyChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Average Occupancy Rate',
-                data: labels.map(label => chartData[timeframe === 'daily' 
-                    ? parseInt(label) 
-                    : labels.indexOf(label)] || 0),
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
-            }
-        }
-    });
-}
-
-// Load daily data by default
-document.addEventListener('DOMContentLoaded', () => {
-    loadHistoricalData('daily');
-});
-
-
     </script>
 </body>
 </html>
+
     
