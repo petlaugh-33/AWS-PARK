@@ -347,13 +347,21 @@
 
 let occupancyChart;
 
+const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
+
 async function loadHistoricalData(timeframe) {
     try {
-        const response = await fetch(`YOUR_API_ENDPOINT/historical?type=${timeframe}`);
+        const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         updateChart(data, timeframe);
     } catch (error) {
         console.error('Error loading historical data:', error);
+        // Optional: Show error to user
+        document.getElementById('chartError')?.textContent = 
+            `Failed to load historical data: ${error.message}`;
     }
 }
 
@@ -399,6 +407,7 @@ function updateChart(data, timeframe) {
 document.addEventListener('DOMContentLoaded', () => {
     loadHistoricalData('daily');
 });
+
 
     </script>
 </body>
