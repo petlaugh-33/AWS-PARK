@@ -103,6 +103,47 @@
                         </div>
                     </div>
                 </div>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title">Parking Reservation</h5>
+        <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
+        
+        <!-- Reservation Form -->
+        <form id="reservationForm" class="mb-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Start Time</label>
+                    <input type="datetime-local" class="form-control" id="startTime" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">End Time</label>
+                    <input type="datetime-local" class="form-control" id="endTime" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Make Reservation</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- My Reservations -->
+        <h6 class="mt-4">My Reservations</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Spot</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="reservationsTable">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
                 <!-- Historical Analysis Card -->
                 <div class="card shadow-sm mb-4">
