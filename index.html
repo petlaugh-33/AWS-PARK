@@ -574,6 +574,8 @@ async function handleReservationSubmit(event) {
     const endTime = document.getElementById('endTime').value;
     
     try {
+        console.log('Submitting reservation:', { startTime, endTime }); // Debug log
+        
         const response = await fetch(`${API_ENDPOINT}/reservations`, {
             method: 'POST',
             headers: {
@@ -585,15 +587,21 @@ async function handleReservationSubmit(event) {
             })
         });
         
+        console.log('Response:', response); // Debug log
+        
         if (!response.ok) {
-            throw new Error('Failed to create reservation');
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to create reservation');
         }
         
         const reservation = await response.json();
+        console.log('Reservation created:', reservation); // Debug log
+        
         document.getElementById('reservationForm').reset();
         loadUserReservations();
         
     } catch (error) {
+        console.error('Reservation error:', error); // Debug log
         const errorElement = document.getElementById('reservationError');
         errorElement.textContent = error.message;
         errorElement.style.display = 'block';
