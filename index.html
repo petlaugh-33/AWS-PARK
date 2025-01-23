@@ -58,40 +58,37 @@
         <header class="pb-3 mb-4 border-bottom">
             <h1 class="display-5 fw-bold">AmazonPark</h1>
         </header>
-        
-<div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
 
         <div class="row">
             <div class="col-md-8">
                 <!-- Main Status Card -->
-             <div class="status-card card shadow-sm mb-4" id="mainStatus">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-4 text-center mb-3">
-                <div class="space-number" id="availableSpaces">--</div>
-                <div class="text-muted">Available Spaces</div>
-            </div>
-            <div class="col-md-4 text-center mb-3">
-                <div class="space-number" id="occupiedSpaces">--</div>
-                <div class="text-muted">Occupied Spaces</div>
-            </div>
-            <div class="col-md-4 text-center mb-3">
-                <div class="space-number" id="occupancyRate">--%</div>
-                <div class="text-muted">Occupancy Rate</div>
-            </div>
-        </div>
-        <div class="progress mb-3">
-            <div class="progress-bar" id="occupancyBar" role="progressbar" style="width: 0%"></div>
-        </div>
-        <div class="text-muted small">
-            Last updated: <span id="lastUpdated">--</span>
-        </div>
-        <!-- Add this line right here -->
-        <div class="text-muted small">
-            Data stored locally: <span id="dataStorageTime">--</span>
-        </div>
-    </div>
-</div>
+                <div class="status-card card shadow-sm mb-4" id="mainStatus">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="space-number" id="availableSpaces">--</div>
+                                <div class="text-muted">Available Spaces</div>
+                            </div>
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="space-number" id="occupiedSpaces">--</div>
+                                <div class="text-muted">Occupied Spaces</div>
+                            </div>
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="space-number" id="occupancyRate">--%</div>
+                                <div class="text-muted">Occupancy Rate</div>
+                            </div>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" id="occupancyBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="text-muted small">
+                            Last updated: <span id="lastUpdated">--</span>
+                        </div>
+                        <div class="text-muted small">
+                            Data stored locally: <span id="dataStorageTime">--</span>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Vehicle Analysis Card -->
                 <div class="card shadow-sm mb-4">
@@ -105,53 +102,53 @@
                         </div>
                     </div>
                 </div>
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">Parking Reservation</h5>
-        <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
-        
-        <!-- Reservation Form -->
-        <form id="reservationForm" class="mb-3">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Start Time</label>
-                    <input type="datetime-local" class="form-control" id="startTime" required>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">End Time</label>
-                    <input type="datetime-local" class="form-control" id="endTime" required>
-                </div>
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">Make Reservation</button>
-                </div>
-            </div>
-        </form>
 
-        <!-- Reservations Table -->
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h5 class="card-title">My Reservations</h5>
-        <div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Start Time</th>
-                        <th>End Time</th>
-                        <th>Spot</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="reservationsTable">
-                    <!-- Reservations will be inserted here -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-        
+                <!-- Reservation Form Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Parking Reservation</h5>
+                        <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
+                        <form id="reservationForm" class="mb-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Start Time</label>
+                                    <input type="datetime-local" class="form-control" id="startTime" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">End Time</label>
+                                    <input type="datetime-local" class="form-control" id="endTime" required>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">Make Reservation</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
+                <!-- Reservations Table Card -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">My Reservations</h5>
+                        <div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Spot</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reservationsTable">
+                                    <!-- Reservations will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Historical Analysis Card -->
                 <div class="card shadow-sm mb-4">
@@ -165,7 +162,7 @@
                         </div>
                         <div id="peakInfo" class="mb-2"></div>
                         <canvas id="occupancyChart"></canvas>
-                       </div>
+                    </div>
                 </div>
 
                 <!-- Time Analysis Card -->
@@ -207,7 +204,7 @@
                 </div>
             </div>
 
-        <div class="col-md-4">
+            <div class="col-md-4">
                 <!-- Connection Status Card -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
@@ -235,6 +232,7 @@
             </div>
         </div>
     </div>
+</body>
 
    <script>
     let socket;
