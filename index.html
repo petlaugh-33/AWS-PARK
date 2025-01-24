@@ -595,7 +595,7 @@ async function handleReservationSubmit(event) {
     try {
         console.log('Submitting reservation:', { startTime, endTime });
         
-        const response = await fetch(`${API_ENDPOINT}/reservations`, {
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -614,9 +614,6 @@ async function handleReservationSubmit(event) {
         if (!response.ok) {
             throw new Error(data.error || 'Failed to create reservation');
         }
-
-        // Handle wrapped response
-        const reservation = data.body ? JSON.parse(data.body) : data;
 
         document.getElementById('reservationForm').reset();
         const errorElement = document.getElementById('reservationError');
@@ -648,13 +645,17 @@ async function handleReservationSubmit(event) {
 
 async function loadUserReservations() {
     try {
-        console.log('Loading reservations...'); 
-        const response = await fetch(`${API_ENDPOINT}/reservations`);
+        console.log('Loading reservations...');
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`);
         console.log('Response status:', response.status);
         
         const data = await response.json();
         console.log('Raw data received:', data);
         
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load reservations');
+        }
+
         // Parse the body if it's a string
         let reservations = [];
         if (data.body) {
@@ -666,23 +667,18 @@ async function loadUserReservations() {
         }
         
         console.log('Parsed reservations:', reservations);
-
-        if (!Array.isArray(reservations)) {
-            console.error('Reservations is not an array:', reservations);
-            reservations = [];
-        }
-
         updateReservationsTable(reservations);
         
     } catch (error) {
-        console.error('Error in loadUserReservations:', error);
+        console.error('Error loading reservations:', error);
         const errorElement = document.getElementById('reservationsError');
         if (errorElement) {
             errorElement.textContent = 'Failed to load reservations. Please try again later.';
-            errorElement.style.display = 'block';
+            errorElement.style.display ay = 'block';
         }
     }
 }
+
 
 function updateReservationsTable(reservations) {
     console.log('Updating table with reservations:', reservations);
@@ -760,8 +756,9 @@ function getStatusColor(status) {
 async function cancelReservation(reservationId) {
     try {
         console.log('Attempting to cancel reservation:', reservationId);
+        console.log('Using endpoint:', `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`);
         
-        const response = await fetch(`${API_ENDPOINT}/reservations/${reservationId}`, {
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -784,7 +781,8 @@ async function cancelReservation(reservationId) {
         document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', successMessage);
         setTimeout(() => successMessage.remove(), 3000);
 
-        // Force immediate reload of reservations
+        // Wait a moment before reloading reservations
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await loadUserReservations();
 
     } catch (error) {
