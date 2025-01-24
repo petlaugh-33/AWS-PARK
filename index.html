@@ -250,6 +250,8 @@
        
     const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
     const RESERVATIONS_API_ENDPOINT = 'https://3t7gznnmib.execute-api.us-east-1.amazonaws.com/prod';
+    console.log('Using API endpoint:', API_ENDPOINT);
+    console.log('Using API endpoint:', RESERVATIONS_API_ENDPOINT);
 
        
     const STORAGE_KEYS = {
@@ -756,13 +758,15 @@ async function cancelReservation(reservationId) {
 }
 
     // Initialize everything when page loads
-    window.addEventListener('load', () => {
+   window.addEventListener('load', () => {
+    console.log('Page loaded, initializing...');
     initializeFromStorage();
     connect();
     startHeartbeat();
     monitorConnection();
-    loadUserReservations();
-    setInterval(loadUserReservations, 30000); // Add here - Refresh every 30 seconds
+    loadUserReservations(); // Initial load
+    setInterval(loadUserReservations, 30000); // Refresh every 30 seconds
+    console.log('Initialization complete');
 });
 
 
