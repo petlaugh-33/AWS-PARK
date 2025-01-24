@@ -760,9 +760,8 @@ function getStatusColor(status) {
 async function cancelReservation(reservationId) {
     try {
         console.log('Attempting to cancel reservation:', reservationId);
-        console.log('Using endpoint:', `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`);
         
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
+        const response = await fetch(`${API_ENDPOINT}/reservations/${reservationId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -778,16 +777,15 @@ async function cancelReservation(reservationId) {
             throw new Error(data.error || 'Failed to cancel reservation');
         }
 
-        // Force reload reservations immediately
-        console.log('Reloading reservations after cancellation...');
-        await loadUserReservations();
-
         // Show success message
         const successMessage = document.createElement('div');
         successMessage.className = 'alert alert-success';
         successMessage.textContent = 'Reservation cancelled successfully!';
         document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', successMessage);
         setTimeout(() => successMessage.remove(), 3000);
+
+        // Force immediate reload of reservations
+        await loadUserReservations();
 
     } catch (error) {
         console.error('Error cancelling reservation:', error);
