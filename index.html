@@ -760,8 +760,9 @@ function getStatusColor(status) {
 async function cancelReservation(reservationId) {
     try {
         console.log('Attempting to cancel reservation:', reservationId);
+        console.log('Using endpoint:', `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`);
         
-        const response = await fetch(`${API_ENDPOINT}/reservations/${reservationId}`, {
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
