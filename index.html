@@ -593,7 +593,7 @@ async function handleReservationSubmit(event) {
     const endTime = document.getElementById('endTime').value;
     
     try {
-        console.log('Submitting reservation:', { startTime, endTime }); // Debug log
+        console.log('Submitting reservation:', { startTime, endTime });
         
         const response = await fetch(`${API_ENDPOINT}/reservations`, {
             method: 'POST',
@@ -607,15 +607,17 @@ async function handleReservationSubmit(event) {
             })
         });
         
-        console.log('Response status:', response.status); // Debug log
+        console.log('Response status:', response.status);
         const data = await response.json();
-        console.log('Response data:', data); // Debug log
+        console.log('Response data:', data);
 
         if (!response.ok) {
             throw new Error(data.error || 'Failed to create reservation');
         }
 
-        // Success handling
+        // Handle wrapped response
+        const reservation = data.body ? JSON.parse(data.body) : data;
+
         document.getElementById('reservationForm').reset();
         const errorElement = document.getElementById('reservationError');
         if (errorElement) {
@@ -646,25 +648,34 @@ async function handleReservationSubmit(event) {
 
 async function loadUserReservations() {
     try {
-        console.log('Loading reservations...'); // Debug log
+        console.log('Loading reservations...'); 
         const response = await fetch(`${API_ENDPOINT}/reservations`);
-        console.log('Response status:', response.status); // Debug log
+        console.log('Response status:', response.status);
         
         const data = await response.json();
-        console.log('Raw reservations data:', data); // Debug log
+        console.log('Raw data received:', data);
         
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to load reservations');
+        // Parse the body if it's a string
+        let reservations = [];
+        if (data.body) {
+            if (typeof data.body === 'string') {
+                reservations = JSON.parse(data.body);
+            } else {
+                reservations = data.body;
+            }
         }
+        
+        console.log('Parsed reservations:', reservations);
 
-        // Make sure data is an array
-        const reservations = Array.isArray(data) ? data : [];
-        console.log('Processed reservations:', reservations); // Debug log
+        if (!Array.isArray(reservations)) {
+            console.error('Reservations is not an array:', reservations);
+            reservations = [];
+        }
 
         updateReservationsTable(reservations);
         
     } catch (error) {
-        console.error('Error loading reservations:', error);
+        console.error('Error in loadUserReservations:', error);
         const errorElement = document.getElementById('reservationsError');
         if (errorElement) {
             errorElement.textContent = 'Failed to load reservations. Please try again later.';
@@ -674,52 +685,58 @@ async function loadUserReservations() {
 }
 
 function updateReservationsTable(reservations) {
+    console.log('Updating table with reservations:', reservations);
+    
     const tbody = document.getElementById('reservationsTable');
     if (!tbody) {
-        console.error('Reservations table not found'); // Debug log
+        console.error('Table body element not found');
         return;
     }
 
-    console.log('Updating table with reservations:', reservations); // Debug log
-
-    if (reservations.length === 0) {
-        console.log('No reservations found'); // Debug log
+    if (!reservations || reservations.length === 0) {
+        console.log('No reservations to display');
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center">No reservations found</td>
+                <td colspan="5" class="text-center">No No reservations found</td>
             </tr>
         `;
         return;
     }
 
-    const tableHtml = reservations
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-        .map(reservation => {
-            console.log('Processing reservation:', reservation); // Debug log
-            return `
-                <tr>
-                    <td>${formatDateTime(reservation.startTime)}</td>
-                    <td>${formatDateTime(reservation.endTime)}</td>
-                    <td>Spot ${reservation.spotNumber}</td>
-                    <td>
-                        <span class="badge bg-${getStatusColor(reservation.status)}">
-                            ${reservation.status}
-                        </span>
-                    </td>
-                    <td>
-                        ${reservation.status === 'CONFIRMED' ? 
-                            `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
-                                Cancel
-                            </button>` : 
-                            ''}
-                    </td>
-                </tr>
-            `;
-        }).join('');
-
-    console.log('Generated table HTML:', tableHtml); // Debug log
-    tbody.innerHTML = tableHtml;
+    try {
+        const tableContent = reservations
+            .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+            .map(reservation => {
+                console.log('Processing reservation:', reservation);
+                return `
+                    <tr>
+                        <td>${formatDateTime(reservation.startTime)}</td>
+                        <td>${formatDateTime(reservation.endTime)}</td>
+                        <td>Spot ${reservation.spotNumber}</td>
+                        <td>
+                            <span class="badge bg-${getStatusColor(reservation.status)}">
+                                ${reservation.status}
+                            </span>
+                        </td>
+                        <td>
+                            ${reservation.status === 'CONFIRMED' ? 
+                                `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
+                                    Cancel
+                                </button>` : 
+                                ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        
+        console.log('Generated table content:', tableContent);
+        tbody.innerHTML = tableContent;
+        console.log('Table updated successfully');
+    } catch (error) {
+        console.error('Error updating table:', error);
+    }
 }
+
 
 function formatDateTime(dateString) {
     try {
