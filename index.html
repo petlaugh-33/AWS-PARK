@@ -649,7 +649,7 @@ async function handleReservationSubmit(event) {
 async function loadUserReservations() {
     try {
         console.log('Loading reservations...'); 
-        const response = await fetch(`${API_ENDPOINT}/reservations`);
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`);
         console.log('Response status:', response.status);
         
         const data = await response.json();
@@ -683,6 +683,7 @@ async function loadUserReservations() {
         }
     }
 }
+
 
 function updateReservationsTable(reservations) {
     console.log('Updating table with reservations:', reservations);
