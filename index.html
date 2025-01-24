@@ -759,18 +759,40 @@ function getStatusColor(status) {
 
 async function cancelReservation(reservationId) {
     try {
+        console.log('Cancelling reservation:', reservationId); // Debug log
+        
         const response = await fetch(`${API_ENDPOINT}/reservations/${reservationId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-        
+
+        console.log('Cancel response status:', response.status); // Debug log
+        const data = await response.json();
+        console.log('Cancel response data:', data); // Debug log
+
         if (!response.ok) {
-            throw new Error('Failed to cancel reservation');
+            throw new Error(data.error || 'Failed to cancel reservation');
         }
-        
-        loadUserReservations();
-        
+
+        // Show success message
+        const successMessage = document.createElement('div');
+        successMessage.className = 'alert alert-success';
+        successMessage.textContent = 'Reservation cancelled successfully!';
+        document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', successMessage);
+        setTimeout(() => successMessage.remove(), 3000);
+
+        // Reload the reservations table
+        await loadUserReservations();
+
     } catch (error) {
         console.error('Error cancelling reservation:', error);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'alert alert-danger';
+        errorMessage.textContent = `Failed to cancel reservation: ${error.message}`;
+        document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', errorMessage);
+        setTimeout(() => errorMessage.remove(), 3000);
     }
 }
 
