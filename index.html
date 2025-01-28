@@ -595,7 +595,7 @@ async function handleReservationSubmit(event) {
     try {
         console.log('Submitting reservation:', { startTime, endTime });
         
-        const response = await fetch(`${API_ENDPOINT}/reservations`, {
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
