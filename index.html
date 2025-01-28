@@ -648,34 +648,31 @@ async function handleReservationSubmit(event) {
 
 async function loadUserReservations() {
     try {
-        console.log('Loading reservations...'); 
+        console.log('Loading reservations...');
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`);
         console.log('Response status:', response.status);
         
         const data = await response.json();
         console.log('Raw data received:', data);
         
-        // Parse the body if it's a string
         let reservations = [];
+        
+        // Handle different response formats
         if (data.body) {
-            if (typeof data.body === 'string') {
-                reservations = JSON.parse(data.body);
-            } else {
-                reservations = data.body;
-            }
+            // Handle case where response is wrapped in body property
+            reservations = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+        } else {
+            // Handle case where response is direct array
+            reservations = Array.isArray(data) ? data : [];
         }
         
-        console.log('Parsed reservations:', reservations);
-
-        if (!Array.isArray(reservations)) {
-            console.error('Reservations is not an array:', reservations);
-            reservations = [];
-        }
-
+        console.log('Processed reservations:', reservations);
+        
+        // Update the table with the reservations
         updateReservationsTable(reservations);
         
     } catch (error) {
-        console.error('Error in loadUserReservations:', error);
+        console.error('Error loading reservations:', error);
         const errorElement = document.getElementById('reservationsError');
         if (errorElement) {
             errorElement.textContent = 'Failed to load reservations. Please try again later.';
@@ -683,6 +680,49 @@ async function loadUserReservations() {
         }
     }
 }
+
+function updateReservationsTable(reservations) {
+    const tbody = document.getElementById('reservationsTable');
+    if (!tbody) {
+        console.error('Reservations table not found');
+        return;
+    }
+
+    if (!reservations || reservations.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center">No reservations found</td>
+            </tr>
+        `;
+        return;
+    }
+
+    const tableContent = reservations
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+        .map(reservation => `
+            <tr>
+                <td>${formatDateTime(reservation.startTime)}</td>
+                <td>${formatDateTime(reservation.endTime)}</td>
+                <td>Spot ${reservation.spotNumber}</td>
+                <td>
+                    <span class="badge bg-${getStatusColor(reservation.status)}">
+                        ${reservation.status}
+                    </span>
+                </td>
+                <td>
+                    ${reservation.status === 'CONFIRMED' ? 
+                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
+                            Cancel
+                        </button>` : 
+                        ''}
+                </td>
+            </tr>
+        `).join('');
+
+    tbody.innerHTML = tableContent;
+    console.log('Table updated with reservations');
+}
+
 
 
 function updateReservationsTable(reservations) {
