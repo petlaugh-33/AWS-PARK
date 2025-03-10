@@ -280,10 +280,12 @@ const MAX_RECONNECT_ATTEMPTS = 5;
     connectionStatus.textContent = 'Connecting...';
 
     try {
+        console.log('Attempting to connect to WebSocket...');
         socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
+        console.log('WebSocket object created:', socket);
 
-        socket.onopen = () => {
-            console.log('WebSocket connected');
+        socket.onopen = (event) => {
+            console.log('WebSocket connection opened:', event);
             isConnecting = false;
             reconnectAttempts = 0;
             connectionStatus.className = 'alert alert-success';
@@ -291,13 +293,15 @@ const MAX_RECONNECT_ATTEMPTS = 5;
             startHeartbeat();
         };
 
-        socket.onclose = () => {
+        socket.onclose = (event) => {
+            console.log('WebSocket closed. Code:', event.code, 'Reason:', event.reason);
             isConnecting = false;
             connectionStatus.className = 'alert alert-warning';
-            connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+            connectionStatus.textContent = `Disconnected (${event.code}) - ${event.reason || 'Attempting to reconnect...'}`;
             
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                 reconnectAttempts++;
+                console.log(`Reconnect attempt ${reconnectAttempts} of ${MAX_RECONNECT_ATTEMPTS}`);
                 setTimeout(connect, 2000);
             } else {
                 connectionStatus.className = 'alert alert-danger';
@@ -306,16 +310,21 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         };
 
         socket.onerror = (error) => {
+            console.error('WebSocket error details:', {
+                error: error,
+                readyState: socket.readyState,
+                url: socket.url
+            });
             isConnecting = false;
             connectionStatus.className = 'alert alert-danger';
             connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
-            console.error('WebSocket error:', error);
         };
 
         socket.onmessage = (event) => {
+            console.log('Received message:', event.data);
             try {
                 const data = JSON.parse(event.data);
-                console.log('Received data:', data);
+                console.log('Parsed data:', data);
                 if (data.availableSpaces !== undefined) {
                     updateStatus(data);
                     addToHistory(data);
@@ -331,7 +340,6 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         connectionStatus.textContent = 'Failed to create connection';
     }
 }
-
 
   function startHeartbeat() {
     console.log('Starting heartbeat');
