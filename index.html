@@ -271,90 +271,73 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         }
     }
 
-  function connect() {
+function connect() {
     if (isConnecting) return;
     isConnecting = true;
     
     const connectionStatus = document.getElementById('connectionStatus');
-    connectionStatus.className = 'alert alert-secondary';
     connectionStatus.textContent = 'Connecting...';
 
-    try {
-        console.log('Attempting to connect to WebSocket...');
-        socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
-        console.log('WebSocket object created:', socket);
+    console.log('Attempting to connect to WebSocket...');
+    socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
 
-        socket.onopen = (event) => {
-            console.log('WebSocket connection opened:', event);
-            isConnecting = false;
-            reconnectAttempts = 0;
-            connectionStatus.className = 'alert alert-success';
-            connectionStatus.textContent = 'Connected';
-            startHeartbeat();
-        };
-
-        socket.onclose = (event) => {
-            console.log('WebSocket closed. Code:', event.code, 'Reason:', event.reason);
-            isConnecting = false;
-            connectionStatus.className = 'alert alert-warning';
-            connectionStatus.textContent = `Disconnected (${event.code}) - ${event.reason || 'Attempting to reconnect...'}`;
-            
-            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                reconnectAttempts++;
-                console.log(`Reconnect attempt ${reconnectAttempts} of ${MAX_RECONNECT_ATTEMPTS}`);
-                setTimeout(connect, 2000);
-            } else {
-                connectionStatus.className = 'alert alert-danger';
-                connectionStatus.textContent = 'Connection failed - Please refresh the page';
-            }
-        };
-
-        socket.onerror = (error) => {
-            console.error('WebSocket error details:', {
-                error: error,
-                readyState: socket.readyState,
-                url: socket.url
-            });
-            isConnecting = false;
-            connectionStatus.className = 'alert alert-danger';
-            connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
-        };
-
-        socket.onmessage = (event) => {
-            console.log('Received message:', event.data);
-            try {
-                const data = JSON.parse(event.data);
-                console.log('Parsed data:', data);
-                if (data.availableSpaces !== undefined) {
-                    updateStatus(data);
-                    addToHistory(data);
-                }
-            } catch (error) {
-                console.error('Error processing message:', error);
-            }
-        };
-    } catch (error) {
-        console.error('Error creating WebSocket:', error);
+    socket.onopen = (event) => {
+        console.log('WebSocket connected:', event);
         isConnecting = false;
-        connectionStatus.className = 'alert alert-danger';
-        connectionStatus.textContent = 'Failed to create connection';
-    }
+        reconnectAttempts = 0;
+        connectionStatus.textContent = 'Connected';
+        startHeartbeat();
+    };
+
+    socket.onclose = (event) => {
+        console.log('WebSocket closed:', event);
+        isConnecting = false;
+        connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+        
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttempts++;
+            setTimeout(connect, 2000);
+        } else {
+            connectionStatus.textContent = 'Connection failed - Please refresh the page';
+        }
+    };
+
+    socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        isConnecting = false;
+        connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+    };
+
+    socket.onmessage = (event) => {
+        console.log('Received message:', event.data);
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'status_update') {
+                updateStatus(data.data);
+                addToHistory(data.data);
+            }
+        } catch (error) {
+            console.error('Error processing message:', error);
+        }
+    };
 }
 
-  function startHeartbeat() {
-    console.log('Starting heartbeat');
+function startHeartbeat() {
     setInterval(() => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             console.log('Sending heartbeat');
-            socket.send(JSON.stringify({
-                action: 'heartbeat',
-                timestamp: new Date().toISOString()
-            }));
+            socket.send(JSON.stringify({ action: 'heartbeat' }));
         } else {
-            console.log('Socket not ready for heartbeat, state:', socket?.readyState);
+            console.log('Socket not ready for heartbeat:', socket?.readyState);
         }
     }, 30000);
 }
+
+// Call this when the page loads
+window.addEventListener('load', () => {
+    connect();
+});
+
 
     function monitorConnection() {
         setInterval(() => {
