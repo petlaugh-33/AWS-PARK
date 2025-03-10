@@ -323,13 +323,20 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         };
     }
 
-    function startHeartbeat() {
-        setInterval(() => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ action: 'heartbeat' }));
-            }
-        }, 30000);
-    }
+  function startHeartbeat() {
+    console.log('Starting heartbeat');
+    setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            console.log('Sending heartbeat');
+            socket.send(JSON.stringify({
+                action: 'heartbeat',
+                timestamp: new Date().toISOString()
+            }));
+        } else {
+            console.log('Socket not ready for heartbeat, state:', socket?.readyState);
+        }
+    }, 30000);
+}
 
     function monitorConnection() {
         setInterval(() => {
