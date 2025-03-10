@@ -645,35 +645,25 @@ async function loadUserReservations() {
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`);
         console.log('Response status:', response.status);
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         console.log('Raw data received:', data);
         
-        let reservations = [];
-        
-        // Handle different response formats
-        if (data.body) {
-            // Handle case where response is wrapped in body property
-            reservations = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
-        } else {
-            // Handle case where response is direct array
-            reservations = Array.isArray(data) ? data : [];
-        }
+        let reservations = Array.isArray(data) ? data : (data.body ? JSON.parse(data.body) : []);
         
         console.log('Processed reservations:', reservations);
         
-        // Update the table with the reservations
         updateReservationsTable(reservations);
         
     } catch (error) {
         console.error('Error loading reservations:', error);
-        const errorElement = document.getElementById('reservationsError');
-        if (errorElement) {
-            errorElement.textContent = 'Failed to load reservations. Please try again later.';
-            errorElement.style.display = 'block';
-        }
+        showErrorMessage('Failed to load reservations. Please try again later.');
     }
 }
-
+    
 function updateReservationsTable(reservations) {
     console.log('Updating table with reservations:', reservations);
     
@@ -684,47 +674,31 @@ function updateReservationsTable(reservations) {
     }
 
     if (!reservations || reservations.length === 0) {
-        console.log('No reservations to display');
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center">No No reservations found</td>
-            </tr>
-        `;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No reservations found</td></tr>';
         return;
     }
 
-    try {
-        const tableContent = reservations
-            .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-            .map(reservation => {
-                console.log('Processing reservation:', reservation);
-                return `
-                    <tr>
-                        <td>${formatDateTime(reservation.startTime)}</td>
-                        <td>${formatDateTime(reservation.endTime)}</td>
-                        <td>Spot ${reservation.spotNumber}</td>
-                        <td>
-                            <span class="badge bg-${getStatusColor(reservation.status)}">
-                                ${reservation.status}
-                            </span>
-                        </td>
-                        <td>
-                            ${reservation.status === 'CONFIRMED' ? 
-                                `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
-                                    Cancel
-                                </button>` : 
-                                ''}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        
-        console.log('Generated table content:', tableContent);
-        tbody.innerHTML = tableContent;
-        console.log('Table updated successfully');
-    } catch (error) {
-        console.error('Error updating table:', error);
-    }
+    tbody.innerHTML = reservations
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+        .map(reservation => `
+            <tr>
+                <td>${formatDateTime(reservation.startTime)}</td>
+                <td>${formatDateTime(reservation.endTime)}</td>
+                <td>Spot ${reservation.spotNumber}</td>
+                <td>
+                    <span class="badge bg-${getStatusColor(reservation.status)}">
+                        ${reservation.status}
+                    </span>
+                </td>
+                <td>
+                    ${reservation.status === 'CONFIRMED' ? 
+                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
+                            Cancel
+                        </button>` : 
+                        ''}
+                </td>
+            </tr>
+        `).join('');
 }
 
 
@@ -750,43 +724,53 @@ function getStatusColor(status) {
 async function cancelReservation(reservationId) {
     try {
         console.log('Attempting to cancel reservation:', reservationId);
-        console.log('Using endpoint:', `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`);
         
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Content-Type': 'application/json'
             }
         });
 
         console.log('Cancel response status:', response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to cancel reservation');
+        }
+
         const data = await response.json();
         console.log('Cancel response data:', data);
 
-        if (!response.ok) {
-            throw new Error(data.error || 'Failed to cancel reservation');
-        }
-
         // Show success message
-        const successMessage = document.createElement('div');
-        successMessage.className = 'alert alert-success';
-        successMessage.textContent = 'Reservation cancelled successfully!';
-        document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', successMessage);
-        setTimeout(() => successMessage.remove(), 3000);
+        showSuccessMessage('Reservation cancelled successfully!');
 
-        // Force immediate reload of reservations
+        // Reload reservations
         await loadUserReservations();
 
     } catch (error) {
         console.error('Error cancelling reservation:', error);
-        const errorMessage = document.createElement('div');
-        errorMessage.className = 'alert alert-danger';
-        errorMessage.textContent = `Failed to cancel reservation: ${error.message}`;
-        document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', errorMessage);
-        setTimeout(() => errorMessage.remove(), 3000);
+        showErrorMessage(`Failed to cancel reservation: ${error.message}`);
     }
 }
+
+function showSuccessMessage(message) {
+    const successMessage = document.createElement('div');
+    successMessage.className = 'alert alert-success mt-3';
+    successMessage.textContent = message;
+    document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', successMessage);
+    setTimeout(() => successMessage.remove(), 3000);
+}
+
+function showErrorMessage(message) {
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'alert alert-danger mt-3';
+    errorMessage.textContent = message;
+    document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', errorMessage);
+    setTimeout(() => errorMessage.remove(), 3000);
+}
+
+    
 
    window.addEventListener('load', () => {
     initializeFromStorage();
