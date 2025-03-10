@@ -1,12 +1,12 @@
 import { initializeStorage, cleanupStorageData } from './storage.js';
-import { initializeUI } from './ui.js';
-import { initializeReservationSystem } from './reservations.js';
-import { connect, monitorConnection, manualReconnect } from './websocket.js';
-import { loadHistoricalData } from './ui.js';
+import { initializeUI, loadHistoricalData } from './ui.js';
+import { initializeReservationSystem, cancelReservation } from './reservations.js';
+import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
 window.loadHistoricalData = loadHistoricalData;
+window.cancelReservation = cancelReservation;
 
 // Initialize application
 function initializeApp() {
@@ -26,8 +26,14 @@ function initializeApp() {
 // Handle errors
 function handleError(error) {
     console.error('Application error:', error);
-    // You could add more error handling here
+    // Add more error handling as needed
 }
+
+// Global error handler
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+    handleError(event.error);
+});
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,11 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Handle unload
 window.addEventListener('beforeunload', () => {
-    // Perform any cleanup needed before page unload
+    closeConnection();
 });
 
-// Export any functions that need to be accessed globally
+// Export for potential external use
 export {
     initializeApp,
     handleError
 };
+
