@@ -203,7 +203,7 @@
 
    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-   const socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
+
 let socket;
 let isConnecting = false;
 let reconnectAttempts = 0;
@@ -271,7 +271,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         }
     }
 
-   function connect() {
+  function connect() {
     if (isConnecting) return;
     isConnecting = true;
     
@@ -283,10 +283,12 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
 
         socket.onopen = () => {
+            console.log('WebSocket connected');
             isConnecting = false;
             reconnectAttempts = 0;
             connectionStatus.className = 'alert alert-success';
             connectionStatus.textContent = 'Connected';
+            startHeartbeat();
         };
 
         socket.onclose = () => {
@@ -319,9 +321,17 @@ const MAX_RECONNECT_ATTEMPTS = 5;
                     addToHistory(data);
                 }
             } catch (error) {
+                console.error('Error processing message:', error);
+            }
+        };
+    } catch (error) {
         console.error('Error creating WebSocket:', error);
+        isConnecting = false;
+        connectionStatus.className = 'alert alert-danger';
+        connectionStatus.textContent = 'Failed to create connection';
     }
 }
+
 
   function startHeartbeat() {
     console.log('Starting heartbeat');
