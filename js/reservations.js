@@ -163,16 +163,39 @@ export async function cancelReservation(reservationId) {
     try {
         console.log('Attempting to cancel reservation:', reservationId);
         
+        // Show loading state
+        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
+        }
+
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
             method: 'DELETE',
             headers: {
-                'Content-Type': 'application/json'
-            }
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Origin': window.location.origin
+            },
+            mode: 'cors',
+            credentials: 'include'
         });
 
+        // Reset button state
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = 'Cancel';
+        }
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to cancel reservation');
+            let errorMessage;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+            } catch {
+                errorMessage = `Failed to cancel reservation (Status: ${response.status})`;
+            }
+            throw new Error(errorMessage);
         }
 
         // Remove from cache
