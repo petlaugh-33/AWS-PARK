@@ -202,32 +202,27 @@
 </body>
 
    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-
+<script>
 let socket;
 let isConnecting = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
-    let history = [];
-    const MAX_HISTORY = 10;
-    let occupancyChart;
-    const RESERVATION_REFRESH_INTERVAL = 30000; // 30 seconds
-    const reservationForm = document.getElementById('reservationForm');
-    if (reservationForm) {
-        reservationForm.addEventListener('submit', handleReservationSubmit);
-    }
-       
-    const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
-    const RESERVATIONS_API_ENDPOINT = 'https://3t7gznnmib.execute-api.us-east-1.amazonaws.com/prod';
+let history = [];
+const MAX_HISTORY = 10;
+let occupancyChart;
+const RESERVATION_REFRESH_INTERVAL = 30000; // 30 seconds
+const WEBSOCKET_URL = 'wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production';
+const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
+const RESERVATIONS_API_ENDPOINT = 'https://3t7gznnmib.execute-api.us-east-1.amazonaws.com/prod';
     console.log('Using API endpoint:', API_ENDPOINT);
     console.log('Using API endpoint:', RESERVATIONS_API_ENDPOINT);
 
        
     const STORAGE_KEYS = {
-        HISTORY: 'parkingHistory',
-        CURRENT_STATUS: 'parkingCurrentStatus',
-        LAST_CHART_TYPE: 'lastChartType'
-    };
+    HISTORY: 'parkingHistory',
+    CURRENT_STATUS: 'parkingCurrentStatus',
+    LAST_CHART_TYPE: 'lastChartType'
+};
 
     function switchTab(tabId) {
             document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
@@ -276,15 +271,17 @@ function connect() {
     isConnecting = true;
     
     const connectionStatus = document.getElementById('connectionStatus');
+    connectionStatus.className = 'alert alert-secondary';
     connectionStatus.textContent = 'Connecting...';
 
     console.log('Attempting to connect to WebSocket...');
-    socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
+    socket = new WebSocket(WEBSOCKET_URL);
 
     socket.onopen = (event) => {
         console.log('WebSocket connected:', event);
         isConnecting = false;
         reconnectAttempts = 0;
+        connectionStatus.className = 'alert alert-success';
         connectionStatus.textContent = 'Connected';
         startHeartbeat();
     };
@@ -292,12 +289,14 @@ function connect() {
     socket.onclose = (event) => {
         console.log('WebSocket closed:', event);
         isConnecting = false;
+        connectionStatus.className = 'alert alert-warning';
         connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
         
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
             setTimeout(connect, 2000);
         } else {
+            connectionStatus.className = 'alert alert-danger';
             connectionStatus.textContent = 'Connection failed - Please refresh the page';
         }
     };
@@ -305,16 +304,17 @@ function connect() {
     socket.onerror = (error) => {
         console.error('WebSocket error:', error);
         isConnecting = false;
+        connectionStatus.className = 'alert alert-danger';
         connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
     };
 
     socket.onmessage = (event) => {
         console.log('Received message:', event.data);
         try {
-            const data = JSON.parse(event.data);
-            if (data.type === 'status_update') {
-                updateStatus(data.data);
-                addToHistory(data.data);
+            const message = JSON.parse(event.data);
+            if (message.type === 'status_update') {
+                updateStatus(message.data);
+                addToHistory(message.data);
             }
         } catch (error) {
             console.error('Error processing message:', error);
@@ -333,58 +333,54 @@ function startHeartbeat() {
     }, 30000);
 }
 
-// Call this when the page loads
-window.addEventListener('load', () => {
-    connect();
-});
 
 
     function monitorConnection() {
-        setInterval(() => {
-            if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
-                connect();
-            }
-        }, 5000);
-    }
-
-    function manualReconnect() {
-        reconnectAttempts = 0;
-        history = []; // Clear history
-        if (socket) {
-            socket.close();
+    setInterval(() => {
+        if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
+            connect();
         }
-        connect();
+    }, 5000);
+}
+
+   function manualReconnect() {
+    reconnectAttempts = 0;
+    history = []; // Clear history
+    if (socket) {
+        socket.close();
     }
+    connect();
+}
 
     function updateStatus(data) {
-        const maimainStatus = document.getElementById('mainStatus');
-        mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-        
-        document.getElementById('availableSpaces').textContent = data.availableSpaces;
-        document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-        document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-        
-        const bar = document.getElementById('occupancyBar');
-        bar.style.width = `${data.occupancyRate}%`;
-        
-        if (data.occupancyRate < 70) {
-            bar.className = 'progress-bar bg-success';
-        } else if (data.occupancyRate < 90) {
-            bar.className = 'progress-bar bg-warning';
-        } else {
-            bar.className = 'progress-bar bg-danger';
-        }
-
-        document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
-        
-        mainStatus.classList.add('update-animation');
-        setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-
-        // Save current status
-        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
-           updateDataStorageTime();
+    console.log('Updating status with data:', data);
+    const mainStatus = document.getElementById('mainStatus');
+    mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
+    
+    document.getElementById('availableSpaces').textContent = data.availableSpaces;
+    document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
+    document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
+    
+    const bar = document.getElementById('occupancyBar');
+    bar.style.width = `${data.occupancyRate}%`;
+    
+    if (data.occupancyRate < 70) {
+        bar.className = 'progress-bar bg-success';
+    } else if (data.occupancyRate < 90) {
+        bar.className = 'progress-bar bg-warning';
+    } else {
+        bar.className = 'progress-bar bg-danger';
     }
 
+    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
+    
+    mainStatus.classList.add('update-animation');
+    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+
+    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
+    updateDataStorageTime();
+}
+        
     function addToHistory(data) {
         try {
             if (!data.lastUpdated || !data.availableSpaces || !data.occupiedSpaces || !data.parkingStatus) {
@@ -792,29 +788,23 @@ async function cancelReservation(reservationId) {
     }
 }
 
-    // Initialize everything when page loads
    window.addEventListener('load', () => {
-            initializeFromStorage();
-            connect();
-            startHeartbeat();
-            monitorConnection();
-            loadUserReservations();
-            setInterval(loadUserReservations, 30000);
-            switchTab('homeTab'); // Start on home page
-        });
+    initializeFromStorage();
+    connect();
+    monitorConnection();
+    loadUserReservations();
+    setInterval(loadUserReservations, RESERVATION_REFRESH_INTERVAL);
+    switchTab('homeTab');
+});
 
+window.addEventListener('beforeunload', () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+    }
+});
 
+setInterval(cleanupStorageData, 60 * 60 * 1000); // every hour
 
-    // Handle page unload/close
-    window.addEventListener('beforeunload', () => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.close();
-        }
-    });
-
-    // Periodic cleanup
-    setInterval(cleanupStorageData, 60 * 60 * 1000); // every hour
-    </script>
+</script>
 </body>
 </html>
-    
