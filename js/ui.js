@@ -1,7 +1,42 @@
-import { STORAGE_KEYS } from './constants.js';
+import { STORAGE_KEYS, CHART_TYPES, API_ENDPOINT, MAX_HISTORY } from './constants.js';
 import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 
 let occupancyChart = null;
+
+// Initialize UI
+export function initializeUI() {
+    // Add tab event listeners
+    document.getElementById('homeTab').addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('homeTab');
+    });
+
+    document.getElementById('analysisTab').addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('analysisTab');
+    });
+
+    // Load initial data
+    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (savedStatus) {
+        updateStatus(savedStatus);
+    }
+
+    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
+    if (savedHistory) {
+        updateHistoryTable(savedHistory);
+    }
+
+    // Initialize chart with last selected type
+    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
+    loadHistoricalData(lastChartType);
+
+    // Set initial tab
+    switchTab('homeTab');
+
+    // Update storage time display
+    updateDataStorageTime();
+}
 
 // Tab switching functionality
 export function switchTab(tabId) {
@@ -38,41 +73,6 @@ export function updateStatus(data) {
     updateDataStorageTime();
 }
 
-export function initializeUI() {
-    // Add tab event listeners
-    document.getElementById('homeTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('homeTab');
-    });
-
-    document.getElementById('analysisTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('analysisTab');
-    });
-
-    // Load initial data
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus) {
-        updateStatus(savedStatus);
-    }
-
-    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-    if (savedHistory) {
-        updateHistoryTable(savedHistory);
-    }
-
-    // Initialize chart with last selected type
-    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
-    loadHistoricalData(lastChartType);
-
-    // Set initial tab
-    switchTab('homeTab');
-
-    // Update storage time display
-    updateDataStorageTime();
-}
-
-    
 // Update occupancy bar color based on rate
 function updateOccupancyBarColor(bar, rate) {
     if (rate < 70) {
@@ -160,27 +160,39 @@ function getStatusBadgeColor(status) {
            'danger';
 }
 
+// Load historical data
+export async function loadHistoricalData(timeframe) {
+    try {
+        saveToLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE, timeframe);
+        const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        updateChart(data, timeframe);
+    } catch (error) {
+        console.error('Error loading historical data:', error);
+        const chartError = document.getElementById('chartError');
+        if (chartError) {
+            chartError.textContent = `Failed to load historical data: ${error.message}`;
+            chartError.style.display = 'block';
+        }
+    }
+}
+
 // Update chart
 export function updateChart(data, timeframe) {
-    const ctx = document.getElementById('occupancyChart').getContext('2d');
+    const ctx = document.getElementById('occupancyChart')?.getContext('2d');
+    if (!ctx) return;
     
     if (occupancyChart) {
         occupancyChart.destroy();
     }
     
-    const chartConfig = createChartConfig(data, timeframe);
-    occupancyChart = new Chart(ctx, chartConfig);
-
-    updatePeakInfo(data);
-    saveToLocalStorage(`chartData_${timeframe}`, data);
-}
-
-// Create chart configuration
-function createChartConfig(data, timeframe) {
     const labels = getChartLabels(timeframe);
     const chartData = timeframe === 'daily' ? data.hourly : data.daily;
     
-    return {
+    occupancyChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
@@ -196,44 +208,41 @@ function createChartConfig(data, timeframe) {
                 tension: 0.1
             }]
         },
-        options: getChartOptions(timeframe)
-    };
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Occupancy Rate (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: timeframe === 'daily' ? 'Hour of Day' : 'Day of Week'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Parking Occupancy - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} View`
+                }
+            }
+        }
+    });
+
+    updatePeakInfo(data);
 }
 
-// Get chart labels based on timeframe
+// Get chart labels
 function getChartLabels(timeframe) {
     return timeframe === 'daily' ?
         Array.from({length: 24}, (_, i) => `${i}:00`) :
         ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-}
-
-// Get chart options
-function getChartOptions(timeframe) {
-    return {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                max: 100,
-                title: {
-                    display: true,
-                    text: 'Occupancy Rate (%)'
-                }
-            },
-            x: {
-                title: {
-                    display: true,
-                    text: timeframe === 'daily' ? 'Hour of Day' : 'Day of Week'
-                }
-            }
-        },
-        plugins: {
-            title: {
-                display: true,
-                text: `Parking Occupancy - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} View`
-            }
-        }
-    };
 }
 
 // Update peak information
@@ -261,9 +270,10 @@ function showMessage(message, type) {
     messageDiv.textContent = message;
     
     const container = document.querySelector('.table-responsive');
-    container.insertAdjacentElement('beforebegin', messageDiv);
-    
-    setTimeout(() => messageDiv.remove(), 3000);
+    if (container) {
+        container.insertAdjacentElement('beforebegin', messageDiv);
+        setTimeout(() => messageDiv.remove(), 3000);
+    }
 }
 
 // Update data storage time
@@ -276,34 +286,3 @@ function updateDataStorageTime() {
             'No data stored';
     }
 }
-
-// Initialize UI
-export function initializeUI() {
-    // Add tab event listeners
-    document.getElementById('homeTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('homeTab');
-    });
-
-    document.getElementById('analysisTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('analysisTab');
-    });
-
-    // Load initial data
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus) {
-        updateStatus(savedStatus);
-    }
-
-    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-    if (savedHistory) {
-        updateHistoryTable(savedHistory);
-    }
-
-    // Set initial tab
-    switchTab('homeTab');
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeUI);
