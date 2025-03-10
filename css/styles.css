@@ -24,3 +24,19 @@
     background-color: #ec7211;
     border-color: #ec7211;
 }
+
+/* Add any additional custom styles that might be missing */
+.status-card {
+    transition: all 0.3s ease;
+}
+
+.update-animation {
+    animation: highlight 1s ease;
+}
+
+@keyframes highlight {
+    0% { background-color: #fff3cd; }
+    100% { background-color: white; }
+}
+
+    
