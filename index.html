@@ -688,50 +688,6 @@ async function loadUserReservations() {
 }
 
 function updateReservationsTable(reservations) {
-    const tbody = document.getElementById('reservationsTable');
-    if (!tbody) {
-        console.error('Reservations table not found');
-        return;
-    }
-
-    if (!reservations || reservations.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center">No reservations found</td>
-            </tr>
-        `;
-        return;
-    }
-
-    const tableContent = reservations
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-        .map(reservation => `
-            <tr>
-                <td>${formatDateTime(reservation.startTime)}</td>
-                <td>${formatDateTime(reservation.endTime)}</td>
-                <td>Spot ${reservation.spotNumber}</td>
-                <td>
-                    <span class="badge bg-${getStatusColor(reservation.status)}">
-                        ${reservation.status}
-                    </span>
-                </td>
-                <td>
-                    ${reservation.status === 'CONFIRMED' ? 
-                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
-                            Cancel
-                        </button>` : 
-                        ''}
-                </td>
-            </tr>
-        `).join('');
-
-    tbody.innerHTML = tableContent;
-    console.log('Table updated with reservations');
-}
-
-
-
-function updateReservationsTable(reservations) {
     console.log('Updating table with reservations:', reservations);
     
     const tbody = document.getElementById('reservationsTable');
