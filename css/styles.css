@@ -1,1 +1,26 @@
+:root {
+    --aws-orange: #FF9900;
+    --aws-squid-ink: #232F3E;
+}
 
+.navbar {
+    background-color: var(--aws-squid-ink);
+}
+
+.navbar-brand, .nav-link {
+    color: white !important;
+}
+
+.nav-link.active {
+    color: var(--aws-orange) !important;
+}
+
+.btn-primary {
+    background-color: var(--aws-orange);
+    border-color: var(--aws-orange);
+}
+
+.btn-primary:hover {
+    background-color: #ec7211;
+    border-color: #ec7211;
+}
