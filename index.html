@@ -271,15 +271,16 @@ const MAX_RECONNECT_ATTEMPTS = 5;
         }
     }
 
-    function connect() {
-        if (isConnecting) return;
-        isConnecting = true;
-        
-        const connectionStatus = document.getElementById('connectionStatus');
-        connectionStatus.className = 'alert alert-secondary';
-        connectionStatus.textContent = 'Connecting...';
+   function connect() {
+    if (isConnecting) return;
+    isConnecting = true;
+    
+    const connectionStatus = document.getElementById('connectionStatus');
+    connectionStatus.className = 'alert alert-secondary';
+    connectionStatus.textContent = 'Connecting...';
 
-        socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production/');
+    try {
+        socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
 
         socket.onopen = () => {
             isConnecting = false;
@@ -318,10 +319,9 @@ const MAX_RECONNECT_ATTEMPTS = 5;
                     addToHistory(data);
                 }
             } catch (error) {
-                console.error('Error processing message:', error);
-            }
-        };
+        console.error('Error creating WebSocket:', error);
     }
+}
 
   function startHeartbeat() {
     console.log('Starting heartbeat');
