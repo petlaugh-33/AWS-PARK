@@ -4,38 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AmazonPark</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --aws-orange: #FF9900;
-            --aws-squid-ink: #232F3E;
-        }
-        .navbar {
-            background-color: var(--aws-squid-ink);
-        }
-        .navbar-brand, .nav-link {
-            color: white !important;
-        }
-        .nav-link.active {
-            color: var(--aws-orange) !important;
-        }
-        .btn-primary {
-            background-color: var(--aws-orange);
-            border-color: var(--aws-orange);
-        }
-        .btn-primary:hover {
-            background-color: #ec7211;
-            border-color: #ec7211;
-        }
-        /* Keep your existing custom styles here */
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+    <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">AmazonPark</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -51,872 +33,161 @@
         </div>
     </nav>
 
+    <!-- Main Container -->
     <div class="container py-4">
+        <!-- Home Page -->
         <div id="homePage">
-
-                  <!-- Connection Status Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Connection Status</h5>
-                        <div id="connectionStatus" class="alert alert-secondary">
-                            Connecting...
-                        </div>
-                        <button class="btn btn-primary btn-sm" onclick="manualReconnect()">
-                            Reconnect
-                        </button>
+            <!-- Connection Status Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Connection Status</h5>
+                    <div id="connectionStatus" class="alert alert-secondary">
+                        Connecting...
                     </div>
+                    <button class="btn btn-primary btn-sm" onclick="window.manualReconnect()">
+                        Reconnect
+                    </button>
                 </div>
-            
-                <!-- Main Status Card -->
-                <div class="status-card card shadow-sm mb-4" id="mainStatus">
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4 text-center mb-3">
-                                <div class="space-number" id="availableSpaces">--</div>
-                                <div class="text-muted">Available Spaces</div>
-                            </div>
-                            <div class="col-md-4 text-center mb-3">
-                                <div class="space-number" id="occupiedSpaces">--</div>
-                                <div class="text-muted">Occupied Spaces</div>
-                            </div>
-                            <div class="col-md-4 text-center mb-3">
-                                <div class="space-number" id="occupancyRate">--%</div>
-                                <div class="text-muted">Occupancy Rate</div>
-                            </div>
+            </div>
+        
+            <!-- Main Status Card -->
+            <div class="status-card card shadow-sm mb-4" id="mainStatus">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="space-number" id="availableSpaces">--</div>
+                            <div class="text-muted">Available Spaces</div>
                         </div>
-                        <div class="progress mb-3">
-                            <div class="progress-bar" id="occupancyBar" role="progressbar" style="width: 0%"></div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="space-number" id="occupiedSpaces">--</div>
+                            <div class="text-muted">Occupied Spaces</div>
                         </div>
-                        <div class="text-muted small">
-                            Last updated: <span id="lastUpdated">--</span>
-                    </div>
-                </div>
-
-                <!-- Reservation Form Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Parking Reservation</h5>
-                        <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
-                        <form id="reservationForm" class="mb-3">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Start Time</label>
-                                    <input type="datetime-local" class="form-control" id="startTime" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">End Time</label>
-                                    <input type="datetime-local" class="form-control" id="endTime" required>
-                                </div>
-                                <div class="col-12">
-                                    <button type="submit" class="btn btn-primary">Make Reservation</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Reservations Table Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">My Reservations</h5>
-                        <div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Start Time</th>
-                                        <th>End Time</th>
-                                        <th>Spot</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="reservationsTable">
-                                    <!-- Reservations will be inserted here -->
-                                </tbody>
-                            </table>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="space-number" id="occupancyRate">--%</div>
+                            <div class="text-muted">Occupancy Rate</div>
                         </div>
                     </div>
-                </div>
-
-                        <!-- History Table Card -->
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Status History</h5>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Time</th>
-                                        <th>Available</th>
-                                        <th>Occupied</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTable">
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" id="occupancyBar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="text-muted small">
+                        Last updated: <span id="lastUpdated">--</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Reservation Form Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Parking Reservation</h5>
+                    <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="reservationForm" class="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Start Time</label>
+                                <input type="datetime-local" class="form-control" id="startTime" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Time</label>
+                                <input type="datetime-local" class="form-control" id="endTime" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Make Reservation</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Reservations Table Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">My Reservations</h5>
+                    <div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Spot</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservationsTable">
+                                <!-- Reservations will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Table Card -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Status History</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Available</th>
+                                    <th>Occupied</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable">
+                                <!-- History will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
-    <div id="analysisPage" style="display: none;">
-                
-                <!-- Historical Analysis Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Historical Analysis</h5>
-                        <div id="chartError" class="alert alert-danger" style="display:none;"></div>
-                        <div class="btn-group mb-3">
-                            <button class="btn btn-outline-primary" onclick="loadHistoricalData('daily')">Daily</button>
-                            <button class="btn btn-outline-primary" onclick="loadHistoricalData('weekly')">Weekly</button>
-                            <button class="btn btn-outline-primary" onclick="loadHistoricalData('monthly')">Monthly</button>
-                        </div>
-                        <div id="peakInfo" class="mb-2"></div>
-                        <canvas id="occupancyChart"></canvas>
+        <!-- Analysis Page -->
+        <div id="analysisPage" style="display: none;">
+            <!-- Historical Analysis Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Historical Analysis</h5>
+                    <div id="chartError" class="alert alert-danger" style="display:none;"></div>
+                    <div class="btn-group mb-3">
+                        <button class="btn btn-outline-primary" onclick="window.loadHistoricalData('daily')">Daily</button>
+                        <button class="btn btn-outline-primary" onclick="window.loadHistoricalData('weekly')">Weekly</button>
+                        <button class="btn btn-outline-primary" onclick="window.loadHistoricalData('monthly')">Monthly</button>
                     </div>
+                    <div id="peakInfo" class="mb-2"></div>
+                    <canvas id="occupancyChart"></canvas>
                 </div>
+            </div>
 
-                <!-- Time Analysis Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Time Analysis</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p>Time of Day: <span id="timeOfDay">--</span></p>
-                                <p>Peak Hours: <span id="peakHours" class="badge">--</span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p>Day of Week: <span id="dayOfWeek">--</span></p>
-                                <p>Average Occupancy: <span id="avgOccupancy">--%</span></p>
-                            </div>
+            <!-- Time Analysis Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Time Analysis</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>Time of Day: <span id="timeOfDay">--</span></p>
+                            <p>Peak Hours: <span id="peakHours" class="badge bg-secondary">--</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>Day of Week: <span id="dayOfWeek">--</span></p>
+                            <p>Average Occupancy: <span id="avgOccupancy">--%</span></p>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
     </div>
-              
-</body>
 
-   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Constants and Variables
-    const RESERVATIONS_API_ENDPOINT = 'https://wszwvwc915.execute-api.us-east-1.amazonaws.com/prod';
-    const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
-    let socket;
-    let isConnecting = false;
-    let reconnectAttempts = 0;
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    let history = [];
-    const RESERVATION_REFRESH_INTERVAL = 30000; // 30 seconds
-    const MAX_HISTORY = 10;
-    let occupancyChart;
-
-    // Storage Keys
-    const STORAGE_KEYS = {
-        HISTORY: 'parkingHistory',
-        CURRENT_STATUS: 'parkingCurrentStatus',
-        LAST_CHART_TYPE: 'lastChartType'
-    };
-
-    function switchTab(tabId) {
-            document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
-            document.getElementById('analysisPage').style.display = tabId === 'analysisTab' ? 'block' : 'none';
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            document.getElementById(tabId).classList.add('active');
-        }
-
-        document.getElementById('homeTab').addEventListener('click', (e) => {
-            e.preventDefault();
-            switchTab('homeTab');
-        });
-
-        document.getElementById('analysisTab').addEventListener('click', (e) => {
-            e.preventDefault();
-            switchTab('analysisTab');
-        });
-
-
-    function startReservationRefresh() {
-    setInterval(loadUserReservations, RESERVATION_REFRESH_INTERVAL);
-}
-       
-    function saveToLocalStorage(key, data) {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-        } catch (error) {
-            console.error('Error saving to localStorage:', error);
-        }
-    }
-
-    function loadFromLocalStorage(key) {
-        try {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
-        } catch (error) {
-            console.error('Error loading from localStorage:', error);
-            return null;
-        }
-    }
-
-function connect() {
-        if (isConnecting) return;
-        isConnecting = true;
-        
-        const connectionStatus = document.getElementById('connectionStatus');
-        connectionStatus.className = 'alert alert-secondary';
-        connectionStatus.textContent = 'Connecting...';
-
-        try {
-            socket = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
-
-            socket.onopen = () => {
-                console.log('WebSocket connected');
-                isConnecting = false;
-                reconnectAttempts = 0;
-                connectionStatus.className = 'alert alert-success';
-                connectionStatus.textContent = 'Connected';
-                startHeartbeat();
-            };
-
-            socket.onclose = () => {
-                isConnecting = false;
-                connectionStatus.className = 'alert alert-warning';
-                connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
-                
-                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                    reconnectAttempts++;
-                    setTimeout(connect, 2000);
-                } else {
-                    connectionStatus.className = 'alert alert-danger';
-                    connectionStatus.textContent = 'Connection failed - Please refresh the page';
-                }
-            };
-
-            socket.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                isConnecting = false;
-                connectionStatus.className = 'alert alert-danger';
-                connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
-            };
-
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    console.log('Received data:', data);
-                    if (data.type === 'status_update') {
-                        updateStatus(data.data);
-                        addToHistory(data.data);
-                    }
-                } catch (error) {
-                    console.error('Error processing message:', error);
-                }
-            };
-        } catch (error) {
-            console.error('Error creating WebSocket:', error);
-            isConnecting = false;
-            connectionStatus.className = 'alert alert-danger';
-            connectionStatus.textContent = 'Failed to create connection';
-        }
-    }
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+            crossorigin="anonymous"></script>
     
-function startHeartbeat() {
-        setInterval(() => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ action: 'heartbeat' }));
-            }
-        }, 30000);
-    }
-
-
-
-
-    function monitorConnection() {
-    setInterval(() => {
-        if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
-            connect();
-        }
-    }, 5000);
-}
-
-    function manualReconnect() {
-        console.log('Manual reconnection requested');
-        reconnectAttempts = 0;
-        history = [];
-        if (socket) {
-            socket.close();
-        }
-        connect();
-    }
-
-    function updateStatus(data) {
-    console.log('Updating status with data:', data);
-    const mainStatus = document.getElementById('mainStatus');
-    mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-    
-    document.getElementById('availableSpaces').textContent = data.availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-    
-    const bar = document.getElementById('occupancyBar');
-    bar.style.width = `${data.occupancyRate}%`;
-    
-    if (data.occupancyRate < 70) {
-        bar.className = 'progress-bar bg-success';
-    } else if (data.occupancyRate < 90) {
-        bar.className = 'progress-bar bg-warning';
-    } else {
-        bar.className = 'progress-bar bg-danger';
-    }
-
-    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
-    
-    mainStatus.classList.add('update-animation');
-    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-
-    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
-    updateDataStorageTime();
-}
-        
-    function addToHistory(data) {
-        try {
-            if (!data.lastUpdated || !data.availableSpaces || !data.occupiedSpaces || !data.parkingStatus) {
-                console.error('Invalid data received:', data);
-                return;
-            }
-
-            const time = new Date(data.lastUpdated).toLocaleTimeString();
-            
-            if (time !== 'Invalid Date') {
-                history.unshift({
-                    time: time,
-                    available: data.availableSpaces,
-                    occupied: data.occupiedSpaces,
-                    status: data.parkingStatus
-                });
-
-                if (history.length > MAX_HISTORY) {
-                    history.pop();
-                }
-
-                // Save history to localStorage
-                saveToLocalStorage(STORAGE_KEYS.HISTORY, history);
-
-                updateHistoryTable();
-            }
-        } catch (error) {
-            console.error('Error adding to history:', error);
-        }
-    }
-
-    function updateHistoryTable() {
-        const tbody = document.getElementById('historyTable');
-        if (tbody) {
-            tbody.innerHTML = history
-                .filter(entry => entry.time && entry.available && entry.occupied && entry.status)
-                .map(entry => `
-                    <tr>
-                        <td>${entry.time}</td>
-                        <td>${entry.available}</td>
-                        <td>${entry.occupied}</td>
-                        <td><span class="badge bg-${entry.status === 'AVAILABLE' ? 'success' : entry.status === 'LIMITED' ? 'warning' : 'danger'}">${entry.status}</span></td>
-                    </tr>
-                `).join('');
-        }
-    }
-
-    async function loadHistoricalData(timeframe) {
-        try {
-            saveToLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE, timeframe);
-            const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            updateChart(data, timeframe);
-        } catch (error) {
-            console.error('Error loading historical data:', error);
-            const chartError = document.getElementById('chartError');
-            if (chartError) {
-                chartError.textContent = `Failed to load historical data: ${error.message}`;
-                chartError.style.display = 'block';
-            }
-        }
-    }
-
-    function updateChart(data, timeframe) {
-        const ctx = document.getElementById('occupancyChart').getContext('2d');
-        
-        if (occupancyChart) {
-            occupancyChart.destroy();
-        }
-        
-        const labels = timeframe === 'daily' 
-            ? Array.from({length: 24}, (_, i) => `${i}:00`)
-            : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        
-        const chartData = timeframe === 'daily' ? data.hourly : data.daily;
-        
-        occupancyChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Average Occupancy Rate',
-                    data: labels.map(label => {
-                        const key = timeframe === 'daily' ? label.split(':')[0] : labels.indexOf(label).toString();
-                        return chartData[key] || 0;
-                    }),
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Occupancy Rate (%)'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: timeframe === 'daily' ? 'Hour of Day' : 'Day of Week'
-                        }
-                    }
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: `Parking Occupancy - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} View`
-                    }
-                }
-            }
-        });
-
-        // Update peak time information if available
-        if (data.peak) {
-            const peakInfo = document.getElementById('peakInfo');
-            if (peakInfo) {
-                peakInfo.textContent = `Peak: ${data.peak.peak.toFixed(2)}%, Off-Peak: ${data.peak.offPeak.toFixed(2)}%`;
-            }
-        }
-
-        // Save chart data
-        saveToLocalStorage(`chartData_${timeframe}`, data);
-        updateDataStorageTime();
-    }
-
-    function initializeFromStorage() {
-        // Load and display history
-        const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-        if (savedHistory) {
-            history = savedHistory;
-            updateHistoryTable();
-        }
-
-        // Load and display current status
-        const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-        if (savedStatus) {
-            updateStatus(savedStatus);
-        }
-
-        // Load last selected chart timeframe
-        const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || 'daily';
-        loadHistoricalData(lastChartType);
-
-        updateDataStorageTime();
-    }
-
-    function cleanupStorageData() {
-        const ONE_DAY = 24 * 60 * 60 * 1000; // milliseconds
-        const now = new Date().getTime();
-        
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('chartData_')) {
-                const data = loadFromLocalStorage(key);
-                if (data && data.lastUpdated) {
-                    const dataAge = now - new Date(data.lastUpdated).getTime();
-                    if (dataAge > ONE_DAY) {
-                        localStorage.removeItem(key);
-                    }
-                }
-            }
-        });
-    }
-
-    function updateDataStorageTime() {
-        const storageTimeElement = document.getElementById('dataStorageTime');
-        if (storageTimeElement) {
-            const lastUpdated = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS)?.lastUpdated;
-            if (lastUpdated) {
-                const storedTime = new Date(lastUpdated);
-                storageTimeElement.textContent = storedTime.toLocaleString();
-            } else {
-                storageTimeElement.textContent = 'No data stored';
-            }
-        }
-    }
-       function initializeReservationSystem() {
-    // Set min datetime for reservation inputs
-    const now = new Date();
-    const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
-    
-    document.getElementById('startTime').min = minDateTime;
-    document.getElementById('endTime').min = minDateTime;
-    
-    // Add form submit handler
-    document.getElementById('reservationForm').addEventListener('submit', handleReservationSubmit);
-    
-    // Load existing reservations
-    loadUserReservations();
-}
-
-async function handleReservationSubmit(event) {
-    event.preventDefault();
-    
-    const startTime = document.getElementById('startTime').value;
-    const endTime = document.getElementById('endTime').value;
-    
-    try {
-        const requestData = {
-            startTime: new Date(startTime).toISOString(),
-            endTime: new Date(endTime).toISOString()
-        };
-        
-        console.log('Submitting reservation with data:', requestData);
-        
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
-        
-        console.log('Response status:', response.status);
-        const responseText = await response.text();
-        console.log('Raw response:', responseText);
-
-        if (!response.ok) {
-            throw new Error(responseText || 'Failed to create reservation');
-        }
-
-        const data = JSON.parse(responseText);
-        console.log('Parsed response data:', data);
-
-        // Clear form and show success
-        document.getElementById('reservationForm').reset();
-        showSuccessMessage('Reservation created successfully!');
-
-        // Reload reservations immediately
-        await loadUserReservations();
-        
-    } catch (error) {
-        console.error('Reservation error:', error);
-        showErrorMessage(error.message || 'Failed to create reservation');
-    }
-}
-
-function showSuccessMessage(message) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'alert alert-success mt-3';
-    successDiv.textContent = message;
-    document.getElementById('reservationForm').appendChild(successDiv);
-    setTimeout(() => successDiv.remove(), 3000);
-}
-
-function showErrorMessage(message) {
-    const errorDiv = document.getElementById('reservationError');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-        }, 3000);
-    }
-}
-
-// Add validation for datetime inputs
-function validateDateTime() {
-    const startTime = new Date(document.getElementById('startTime').value);
-    const endTime = new Date(document.getElementById('endTime').value);
-    const now = new Date();
-
-    if (startTime < now) {
-        showErrorMessage('Start time must be in the future');
-        return false;
-    }
-
-    if (endTime <= startTime) {
-        showErrorMessage('End time must be after start time');
-        return false;
-    }
-
-    const duration = (endTime - startTime) / (1000 * 60 * 60); // Duration in hours
-    if (duration > 24) {
-        showErrorMessage('Reservation cannot exceed 24 hours');
-        return false;
-    }
-
-    if (duration < 1) {
-        showErrorMessage('Reservation must be at least 1 hour');
-        return false;
-    }
-
-    return true;
-}
-
-// Update the startTime input's min value when it changes
-document.getElementById('startTime').addEventListener('change', function() {
-    const startTime = this.value;
-    if (startTime) {
-        document.getElementById('endTime').min = startTime;
-    }
-});
-
-
-async function loadUserReservations() {
-    try {
-        console.log('Loading reservations...');
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        });
-        
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Raw data received:', data);
-        
-        let reservations = Array.isArray(data) ? data : [];
-        
-        // Filter out reservations without startTime
-        reservations = reservations.filter(reservation => {
-            if (!reservation.startTime) {
-                console.warn('Reservation without startTime:', reservation);
-                return false;
-            }
-            return true;
-        });
-        
-        console.log('Processed reservations:', reservations);
-        
-        updateReservationsTable(reservations);
-        
-    } catch (error) {
-        console.error('Error loading reservations:', error);
-        showErrorMessage('Failed to load reservations. Please try again later.');
-    }
-}
-
-function updateReservationsTable(reservations) {
-    console.log('Updating table with reservations:', reservations);
-    
-    const tbody = document.getElementById('reservationsTable');
-    if (!tbody) {
-        console.error('Table body element not found');
-        return;
-    }
-
-    if (!reservations || reservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No reservations found</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = reservations
-        .sort((a, b) => new Date(a.startTime || '9999-12-31') - new Date(b.startTime || '9999-12-31'))
-        .map(reservation => `
-            <tr>
-                <td>${formatDateTime(reservation.startTime)}</td>
-                <td>${formatDateTime(reservation.endTime)}</td>
-                <td>Spot ${reservation.spotNumber || 'N/A'}</td>
-                <td>
-                    <span class="badge bg-${getStatusColor(reservation.status)}">
-                        ${reservation.status || 'Unknown'}
-                    </span>
-                </td>
-                <td>
-                    ${reservation.status === 'CONFIRMED' ? 
-                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
-                            Cancel
-                        </button>` : 
-                        ''}
-                </td>
-            </tr>
-        `).join('');
-}
-
-function formatDateTime(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-        return new Date(dateString).toLocaleString();
-    } catch (error) {
-        console.error('Error formatting date:', dateString, error);
-        return 'Invalid Date';
-    }
-}
-
-    
-    
-    
-function updateReservationsTable(reservations) {
-    console.log('Updating table with reservations:', reservations);
-    
-    const tbody = document.getElementById('reservationsTable');
-    if (!tbody) {
-        console.error('Table body element not found');
-        return;
-    }
-
-    if (!reservations || reservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No reservations found</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = reservations
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-        .map(reservation => `
-            <tr>
-                <td>${formatDateTime(reservation.startTime)}</td>
-                <td>${formatDateTime(reservation.endTime)}</td>
-                <td>Spot ${reservation.spotNumber}</td>
-                <td>
-                    <span class="badge bg-${getStatusColor(reservation.status)}">
-                        ${reservation.status}
-                    </span>
-                </td>
-                <td>
-                    ${reservation.status === 'CONFIRMED' ? 
-                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
-                            Cancel
-                        </button>` : 
-                        ''}
-                </td>
-            </tr>
-        `).join('');
-}
-
-
-function formatDateTime(dateString) {
-    try {
-        return new Date(dateString).toLocaleString();
-    } catch (error) {
-        console.error('Error formatting date:', dateString, error);
-        return dateString;
-    }
-}
-
-function getStatusColor(status) {
-    switch (status) {
-        case 'CONFIRMED': return 'success';
-        case 'PENDING': return 'warning';
-        case 'CANCELLED': return 'danger';
-        case 'COMPLETED': return 'info';
-        default: return 'secondary';
-    }
-}
-
-async function cancelReservation(reservationId) {
-    try {
-        console.log('Attempting to cancel reservation:', reservationId);
-        
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        console.log('Cancel response status:', response.status);
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to cancel reservation');
-        }
-
-        const data = await response.json();
-        console.log('Cancel response data:', data);
-
-        // Show success message
-        showSuccessMessage('Reservation cancelled successfully!');
-
-        // Reload reservations
-        await loadUserReservations();
-
-    } catch (error) {
-        console.error('Error cancelling reservation:', error);
-        showErrorMessage(`Failed to cancel reservation: ${error.message}`);
-    }
-}
-
-function showSuccessMessage(message) {
-    const successMessage = document.createElement('div');
-    successMessage.className = 'alert alert-success mt-3';
-    successMessage.textContent = message;
-    document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', successMessage);
-    setTimeout(() => successMessage.remove(), 3000);
-}
-
-function showErrorMessage(message) {
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'alert alert-danger mt-3';
-    errorMessage.textContent = message;
-    document.querySelector('.table-responsive').insertAdjacentElement('beforebegin', errorMessage);
-    setTimeout(() => errorMessage.remove(), 3000);
-}
-
-    document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing reservation form');
-    const reservationForm = document.getElementById('reservationForm');
-    if (reservationForm) {
-        // Set minimum date/time for inputs
-        const now = new Date();
-        const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
-        
-        document.getElementById('startTime').min = minDateTime;
-        document.getElementById('endTime').min = minDateTime;
-        
-        reservationForm.addEventListener('submit', handleReservationSubmit);
-    } else {
-        console.error('Reservation form not found');
-    }
-});
-
-   window.addEventListener('load', () => {
-    initializeFromStorage();
-    connect();
-    monitorConnection();
-    loadUserReservations();
-    setInterval(loadUserReservations, RESERVATION_REFRESH_INTERVAL);
-    switchTab('homeTab');
-});
-
-window.addEventListener('beforeunload', () => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.close();
-    }
-});
-
-setInterval(cleanupStorageData, 60 * 60 * 1000); // every hour
-
-</script>
+    <!-- Main Application JavaScript -->
+    <script type="module" src="js/index.js"></script>
 </body>
 </html>
