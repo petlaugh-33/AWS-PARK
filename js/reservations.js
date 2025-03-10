@@ -174,11 +174,9 @@ export async function cancelReservation(reservationId) {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Origin': window.location.origin
+                'Accept': 'application/json'
             },
-            mode: 'cors',
-            credentials: 'include'
+            mode: 'cors'
         });
 
         // Reset button state
@@ -187,19 +185,24 @@ export async function cancelReservation(reservationId) {
             button.innerHTML = 'Cancel';
         }
 
+        // Parse response
+        let data;
+        try {
+            const text = await response.text();
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            console.error('Error parsing response:', e);
+            throw new Error('Invalid response from server');
+        }
+
         if (!response.ok) {
-            let errorMessage;
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
-            } catch {
-                errorMessage = `Failed to cancel reservation (Status: ${response.status})`;
-            }
-            throw new Error(errorMessage);
+            throw new Error(data.error || `Failed to cancel reservation (Status: ${response.status})`);
         }
 
         // Remove from cache
-        reservationsCache.delete(reservationId);
+        if (reservationsCache) {
+            reservationsCache.delete(reservationId);
+        }
 
         // Show success message
         showSuccessMessage('Reservation cancelled successfully!');
@@ -214,6 +217,8 @@ export async function cancelReservation(reservationId) {
         return false;
     }
 }
+
+    
 
 // Validate datetime inputs
 export function validateDateTime() {
