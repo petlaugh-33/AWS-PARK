@@ -653,16 +653,25 @@ async function loadUserReservations() {
         console.log('Response status:', response.status);
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
         console.log('Raw data received:', data);
         
-        let reservations = Array.isArray(data) ? data : data.body ? JSON.parse(data.body) : [];
+        let reservations = Array.isArray(data) ? data : [];
+        
+        // Filter out reservations without startTime
+        reservations = reservations.filter(reservation => {
+            if (!reservation.startTime) {
+                console.warn('Reservation without startTime:', reservation);
+                return false;
+            }
+            return true;
+        });
         
         console.log('Processed reservations:', reservations);
+        
         updateReservationsTable(reservations);
         
     } catch (error) {
@@ -671,6 +680,54 @@ async function loadUserReservations() {
     }
 }
 
+function updateReservationsTable(reservations) {
+    console.log('Updating table with reservations:', reservations);
+    
+    const tbody = document.getElementById('reservationsTable');
+    if (!tbody) {
+        console.error('Table body element not found');
+        return;
+    }
+
+    if (!reservations || reservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No reservations found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = reservations
+        .sort((a, b) => new Date(a.startTime || '9999-12-31') - new Date(b.startTime || '9999-12-31'))
+        .map(reservation => `
+            <tr>
+                <td>${formatDateTime(reservation.startTime)}</td>
+                <td>${formatDateTime(reservation.endTime)}</td>
+                <td>Spot ${reservation.spotNumber || 'N/A'}</td>
+                <td>
+                    <span class="badge bg-${getStatusColor(reservation.status)}">
+                        ${reservation.status || 'Unknown'}
+                    </span>
+                </td>
+                <td>
+                    ${reservation.status === 'CONFIRMED' ? 
+                        `<button class="btn btn-sm btn-danger" onclick="cancelReservation('${reservation.reservationId}')">
+                            Cancel
+                        </button>` : 
+                        ''}
+                </td>
+            </tr>
+        `).join('');
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        return new Date(dateString).toLocaleString();
+    } catch (error) {
+        console.error('Error formatting date:', dateString, error);
+        return 'Invalid Date';
+    }
+}
+
+    
     
     
 function updateReservationsTable(reservations) {
