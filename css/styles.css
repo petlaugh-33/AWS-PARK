@@ -25,18 +25,34 @@
     border-color: #ec7211;
 }
 
-/* Add any additional custom styles that might be missing */
+.space-number {
+    font-size: 2em;
+    font-weight: bold;
+}
+
 .status-card {
     transition: all 0.3s ease;
 }
 
-.update-animation {
+.status-card.update-animation {
     animation: highlight 1s ease;
 }
 
 @keyframes highlight {
     0% { background-color: #fff3cd; }
     100% { background-color: white; }
+}
+
+.status-AVAILABLE {
+    border-left: 4px solid var(--bs-success);
+}
+
+.status-LIMITED {
+    border-left: 4px solid var(--bs-warning);
+}
+
+.status-FULL {
+    border-left: 4px solid var(--bs-danger);
 }
 
     
