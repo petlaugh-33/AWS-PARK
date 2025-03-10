@@ -1,4 +1,4 @@
-mport { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS } from './constants.js';
+import { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS } from './constants.js';
 import { updateStatus, addToHistory } from './ui.js';
 
 let socket;
