@@ -38,6 +38,41 @@ export function updateStatus(data) {
     updateDataStorageTime();
 }
 
+export function initializeUI() {
+    // Add tab event listeners
+    document.getElementById('homeTab').addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('homeTab');
+    });
+
+    document.getElementById('analysisTab').addEventListener('click', (e) => {
+        e.preventDefault();
+        switchTab('analysisTab');
+    });
+
+    // Load initial data
+    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (savedStatus) {
+        updateStatus(savedStatus);
+    }
+
+    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
+    if (savedHistory) {
+        updateHistoryTable(savedHistory);
+    }
+
+    // Initialize chart with last selected type
+    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
+    loadHistoricalData(lastChartType);
+
+    // Set initial tab
+    switchTab('homeTab');
+
+    // Update storage time display
+    updateDataStorageTime();
+}
+
+    
 // Update occupancy bar color based on rate
 function updateOccupancyBarColor(bar, rate) {
     if (rate < 70) {
