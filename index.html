@@ -642,20 +642,27 @@ async function handleReservationSubmit(event) {
 async function loadUserReservations() {
     try {
         console.log('Loading reservations...');
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`);
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        
         console.log('Response status:', response.status);
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
         console.log('Raw data received:', data);
         
-        let reservations = Array.isArray(data) ? data : (data.body ? JSON.parse(data.body) : []);
+        let reservations = Array.isArray(data) ? data : data.body ? JSON.parse(data.body) : [];
         
         console.log('Processed reservations:', reservations);
-        
         updateReservationsTable(reservations);
         
     } catch (error) {
@@ -663,6 +670,8 @@ async function loadUserReservations() {
         showErrorMessage('Failed to load reservations. Please try again later.');
     }
 }
+
+    
     
 function updateReservationsTable(reservations) {
     console.log('Updating table with reservations:', reservations);
