@@ -1,82 +1,175 @@
-// websocket.js
-class WebSocketManager {
-    constructor(config) {
-        this.WEBSOCKET_URL = 'wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production';
-        this.MAX_RECONNECT_ATTEMPTS = 5;
-        this.HEARTBEAT_INTERVAL = 30000;
+mport { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS } from './constants.js';
+import { updateStatus, addToHistory } from './ui.js';
 
-        this.socket = null;
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
-        this.heartbeatInterval = null;
+let socket;
+let isConnecting = false;
+let reconnectAttempts = 0;
 
-        // Callbacks
-        this.onStatusUpdate = config.onStatusUpdate || (() => {});
-        this.onHistoryUpdate = config.onHistoryUpdate || (() => {});
-    }
-
-    connect() {
-        if (this.isConnecting) return;
-        this.isConnecting = true;
-        
-        const connectionStatus = document.getElementById('connectionStatus');
-        connectionStatus.className = 'alert alert-secondary';
-        connectionStatus.textContent = 'Connecting...';
-
-        try {
-            this.socket = new WebSocket(this.WEBSOCKET_URL);
-            this.setupEventHandlers();
-        } catch (error) {
-            console.error('Error creating WebSocket:', error);
-            this.handleConnectionError(error);
-        }
-    }
-
-    setupEventHandlers() {
-        this.socket.onopen = () => {
-            console.log('WebSocket connected');
-            this.isConnecting = false;
-            this.reconnectAttempts = 0;
-            this.updateConnectionStatus('success', 'Connected');
-            this.startHeartbeat();
-        };
-
-        this.socket.onclose = () => {
-            this.handleDisconnect();
-        };
-
-        this.socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            this.handleConnectionError(error);
-        };
-
-        this.socket.onmessage = (event) => {
-            this.handleMessage(event);
-        };
-    }
-
-    handleMessage(event) {
-        try {
-            const data = JSON.parse(event.data);
-            console.log('Received data:', data);
-            if (data.type === 'status_update') {
-                this.onStatusUpdate(data.data);
-                this.onHistoryUpdate(data.data);
-            }
-        } catch (error) {
-            console.error('Error processing message:', error);
-        }
-    }
-
-    startHeartbeat() {
-        if (this.heartbeatInterval) {
-            clearInterval(this.heartbeatInterval);
-        }
-        
-        this.heartbeatInterval = setInterval(() => {
-            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-                console.log('Sending heartbeat');
-                this.socket.send(JSON.stringify({ 
-                    action: 'heartbeat',
-                    timestamp: new Date().toISOString
+export function connect() {
+    if (isConnecting) return;
+    isConnecting = true;
     
+    const connectionStatus = document.getElementById('connectionStatus');
+    connectionStatus.className = 'alert alert-secondary';
+    connectionStatus.textContent = 'Connecting...';
+
+    try {
+        socket = new WebSocket(WEBSOCKET_URL);
+
+        socket.onopen = () => {
+            console.log('WebSocket connected');
+            isConnecting = false;
+            reconnectAttempts = 0;
+            connectionStatus.className = 'alert alert-success';
+            connectionStatus.textContent = 'Connected';
+            startHeartbeat();
+        };
+
+        socket.onclose = () => {
+            isConnecting = false;
+            connectionStatus.className = 'alert alert-warning';
+            connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+            
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                setTimeout(connect, 2000);
+            } else {
+                connectionStatus.className = 'alert alert-danger';
+                connectionStatus.textContent = 'Connection failed - Please refresh the page';
+            }
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            isConnecting = false;
+            connectionStatus.className = 'alert alert-danger';
+            connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('Received data:', data);
+                if (data.type === 'status_update') {
+                    updateStatus(data.data);
+                    addToHistory(data.data);
+                }
+            } catch (error) {
+                console.error('Error processing message:', error);
+            }
+        };
+    } catch (error) {
+        console.error('Error creating WebSocket:', error);
+        isConnecting = false;
+        connectionStatus.className = 'alert alert-danger';
+        connectionStatus.textContent = 'Failed to create connection';
+    }
+}
+
+export function startHeartbeat() {
+    setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ action: 'heartbeat' }));
+        }
+    }, 30000); // 30 seconds
+}
+
+export function monitorConnection() {
+    setInterval(() => {
+        if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
+            connect();
+        }
+    }, 5000); // 5 seconds
+}
+
+export function manualReconnect() {
+    console.log('Manual reconnection requested');
+    reconnectAttempts = 0;
+    if (socket) {
+        socket.close();
+    }
+    connect();
+}
+
+// Get current socket state
+export function getConnectionState() {
+    if (!socket) return 'CLOSED';
+    
+    switch(socket.readyState) {
+        case WebSocket.CONNECTING:
+            return 'CONNECTING';
+        case WebSocket.OPEN:
+            return 'OPEN';
+        case WebSocket.CLOSING:
+            return 'CLOSING';
+        case WebSocket.CLOSED:
+            return 'CLOSED';
+        default:
+            return 'UNKNOWN';
+    }
+}
+
+// Send a message through the WebSocket
+export function sendMessage(message) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+            socket.send(JSON.stringify(message));
+            return true;
+        } catch (error) {
+            console.error('Error sending message:', error);
+            return false;
+        }
+    }
+    return false;
+}
+
+// Close the WebSocket connection
+export function closeConnection() {
+    if (socket) {
+        try {
+            socket.close();
+            return true;
+        } catch (error) {
+            console.error('Error closing connection:', error);
+            return false;
+        }
+    }
+    return false;
+}
+
+// Reset connection attempts
+export function resetConnectionAttempts() {
+    reconnectAttempts = 0;
+}
+
+// Check if WebSocket is currently connected
+export function isConnected() {
+    return socket && socket.readyState === WebSocket.OPEN;
+}
+
+// Initialize WebSocket with custom handlers
+export function initializeWebSocket(customHandlers = {}) {
+    if (customHandlers.onMessage) {
+        const originalOnMessage = socket.onmessage;
+        socket.onmessage = (event) => {
+            originalOnMessage(event);
+            customHandlers.onMessage(event);
+        };
+    }
+
+    if (customHandlers.onClose) {
+        const originalOnClose = socket.onclose;
+        socket.onclose = (event) => {
+            originalOnClose(event);
+            customHandlers.onClose(event);
+        };
+    }
+
+    if (customHandlers.onError) {
+        const originalOnError = socket.onerror;
+        socket.onerror = (error) => {
+            originalOnError(error);
+            customHandlers.onError(error);
+        };
+    }
+}
