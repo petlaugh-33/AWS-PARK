@@ -146,7 +146,7 @@ function validateHistoryEntry(entry) {
 function createHistoryRow(entry) {
     return `
         <tr>
-            <td>${entry.time}</td>
+            <td>${new Date(entry.time).toLocaleString('en-US', { timeZone: 'America/New_York' })}</td>
             <td>${entry.available}</td>
             <td>${entry.occupied}</td>
             <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
