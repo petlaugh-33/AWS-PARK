@@ -281,13 +281,17 @@ function updateReservationsTable(reservations) {
         return;
     }
 
-    if (!reservations || reservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No reservations found</td></tr>';
+    // Filter out cancelled reservations and sort by start time
+    const activeReservations = reservations
+        .filter(reservation => reservation.status !== 'CANCELLED')
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    if (activeReservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No active reservations found</td></tr>';
         return;
     }
 
-    tbody.innerHTML = reservations
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+    tbody.innerHTML = activeReservations
         .map(reservation => `
             <tr>
                 <td>${formatDateTime(reservation.startTime)}</td>
@@ -295,7 +299,7 @@ function updateReservationsTable(reservations) {
                 <td>Spot ${reservation.spotNumber || 'N/A'}</td>
                 <td>
                     <span class="badge bg-${getStatusColor(reservation.status)}">
-                        ${reservation.status || 'Unknown'}
+                        ${reservation.status}
                     </span>
                 </td>
                 <td>
@@ -308,6 +312,7 @@ function updateReservationsTable(reservations) {
             </tr>
         `).join('');
 }
+
 
 // Format datetime for display
 function formatDateTime(dateString) {
