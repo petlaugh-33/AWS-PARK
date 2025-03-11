@@ -45,34 +45,39 @@
     <p>Please click the button below to log in.</p>
     <button id="loginButton">Login with Cognito</button>
   </div>
-  <script>
-    const cognitoDomain = "https://us-east-1yk7q60v8o.auth.us-east-1.amazoncognito.com";
-    const clientId = "1uh3r35aemfub1ee1lin6o8lb1";
-    const redirectUri = "https://main.d1lgse8ryp3x19.amplifyapp.com/index.html";
-    const responseType = "code";
-    const scope = "aws.cognito.signin.user.admin email openid phone";
+  
+  <script type="module">
+    import { clientId, cognitoDomain, redirectUri, exchangeCodeForTokens } from './auth.js';
 
-   // Login handler
-   document.getElementById("loginButton").addEventListener("click", () => {
-            const loginUrl = `${cognitoDomain}/login?client_id=${clientId}&response_type=${responseType}&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}`;
-            window.location.href = loginUrl;
-        });
+    // Check if we're returning from authentication
+    async function checkAuth() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
 
-        // Sign out handler (if needed)
-        function signOut() {
-            const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(signOutUri)}`;
-            window.location.href = logoutUrl;
-        }
-
-        // Check if we're returning from a sign-out
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('signed-out') === 'true') {
-                // Clear any remaining local storage or session data
-                localStorage.clear();
-                sessionStorage.clear();
+        // If we have an authorization code, process it
+        if (code) {
+            try {
+                const user = await exchangeCodeForTokens(code);
+                // If successful, redirect to index.html
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Authentication error:', error);
             }
-        };
+        }
+        // If user is already logged in, redirect to index
+        else if (localStorage.getItem('idToken')) {
+            window.location.href = 'index.html';
+        }
+    }
+
+    // Handle login button click
+    document.getElementById("loginButton").addEventListener("click", () => {
+        const loginUrl = `${cognitoDomain}/login?client_id=${clientId}&response_type=code&scope=aws.cognito.signin.user.admin email openid phone&redirect_uri=${encodeURIComponent(redirectUri)}`;
+        window.location.href = loginUrl;
+    });
+
+    // Check authentication status when page loads
+    checkAuth();
   </script>
 </body>
 </html>
