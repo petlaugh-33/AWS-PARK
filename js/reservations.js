@@ -7,7 +7,7 @@ let reservationsCache = new Map();
 
 // Initialize the reservation system
 export function initializeReservationSystem() {
-    const now = new Date();
+    const now = convertToEST(new Date());
     const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
     
     document.getElementById('startTime').min = minDateTime;
@@ -49,21 +49,26 @@ function handleStartTimeChange(event) {
     }
 }
 
+// convert UTC to EST
+function convertToEST(date) {
+    return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+}
+
 // Handle reservation form submission
-export async function handleReservationSubmit(event) {
+async function handleReservationSubmit(event) {
     event.preventDefault();
     
     if (!validateDateTime()) {
         return;
     }
     
-    const startTime = document.getElementById('startTime').value;
-    const endTime = document.getElementById('endTime').value;
+    const startTime = convertToEST(new Date(document.getElementById('startTime').value));
+    const endTime = convertToEST(new Date(document.getElementById('endTime').value));
     
     try {
         const requestData = {
-            startTime: new Date(startTime).toISOString(),
-            endTime: new Date(endTime).toISOString()
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString()
         };
         
         console.log('Submitting reservation with data:', requestData);
@@ -225,9 +230,9 @@ export async function cancelReservation(reservationId) {
 
 // Validate datetime inputs
 function validateDateTime() {
-    const startTime = new Date(document.getElementById('startTime').value);
-    const endTime = new Date(document.getElementById('endTime').value);
-    const now = new Date();
+    const startTime = convertToEST(new Date(document.getElementById('startTime').value));
+    const endTime = convertToEST(new Date(document.getElementById('endTime').value));
+    const now = convertToEST(new Date());
 
     if (startTime < now) {
         showErrorMessage('Start time must be in the future');
@@ -318,7 +323,8 @@ function updateReservationsTable(reservations) {
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
     try {
-        return new Date(dateString).toLocaleString();
+        const date = convertToEST(new Date(dateString));
+        return date.toLocaleString('en-US', { timeZone: 'America/New_York' });
     } catch (error) {
         console.error('Error formatting date:', dateString, error);
         return 'Invalid Date';
