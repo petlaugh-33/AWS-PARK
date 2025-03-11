@@ -3,6 +3,11 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 
 let occupancyChart = null;
 
+function convertToEST(dateString) {
+    const date = new Date(dateString);
+    return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+}
+
 // Initialize UI
 export function initializeUI() {
     // Add tab event listeners
@@ -58,6 +63,7 @@ export function updateStatus(data) {
     document.getElementById('availableSpaces').textContent = data.availableSpaces;
     document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
     document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
+    document.getElementById('lastUpdated').textContent = formatDateTime(data.lastUpdated);
     
     const bar = document.getElementById('occupancyBar');
     bar.style.width = `${data.occupancyRate}%`;
@@ -130,7 +136,14 @@ export function updateHistoryTable(history) {
 
     tbody.innerHTML = history
         .filter(validateHistoryEntry)
-        .map(entry => createHistoryRow(entry))
+        .map(entry => `
+            <tr>
+                <td>${formatDateTime(entry.time)}</td>
+                <td>${entry.available}</td>
+                <td>${entry.occupied}</td>
+                <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
+            </tr>
+        `)
         .join('');
 }
 
@@ -237,6 +250,26 @@ export function updateChart(data, timeframe) {
     });
 
     updatePeakInfo(data);
+}
+
+function formatDateTime(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = convertToEST(dateString);
+        return date.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        });
+    } catch (error) {
+        console.error('Error formatting date:', dateString, error);
+        return 'Invalid Date';
+    }
 }
 
 // Get chart labels
