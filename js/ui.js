@@ -64,7 +64,8 @@ export function updateStatus(data) {
     
     updateOccupancyBarColor(bar, data.occupancyRate);
     
-    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString();
+    // Update this line to use EST
+    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' });
     
     mainStatus.classList.add('update-animation');
     setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
@@ -282,7 +283,7 @@ function updateDataStorageTime() {
     if (storageTimeElement) {
         const lastUpdated = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS)?.lastUpdated;
         storageTimeElement.textContent = lastUpdated ? 
-            new Date(lastUpdated).toLocaleString() : 
+            new Date(lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' }) : 
             'No data stored';
     }
 }
