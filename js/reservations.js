@@ -322,8 +322,16 @@ function updateReservationsTable(reservations) {
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
     try {
-        const date = convertToEST(new Date(dateString));
-        return date.toLocaleString('en-US', { timeZone: 'America/New_York' });
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
     } catch (error) {
         console.error('Error formatting date:', dateString, error);
         return 'Invalid Date';
