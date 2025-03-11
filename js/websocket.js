@@ -47,17 +47,28 @@ export function connect() {
         };
 
         socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                console.log('Received data:', data);
-                if (data.type === 'status_update') {
-                    updateStatus(data.data);
-                    addToHistory(data.data);
-                }
-            } catch (error) {
-                console.error('Error processing message:', error);
+    try {
+        const data = JSON.parse(event.data);
+        console.log('Received data:', data);
+        
+        if (data.type === 'status_update') {
+            updateStatus(data.data);
+            addToHistory(data.data);
+        } 
+        else if (data.type === 'reservation_update') {
+            // Reload reservations when there's any reservation change
+            loadUserReservations();
+            
+            // Also update the status since parking availability might have changed
+            if (data.action === 'create' || data.action === 'cancel') {
+                updateParkingStatus();
             }
-        };
+        }
+    } catch (error) {
+        console.error('Error processing message:', error);
+    }
+};
+        
     } catch (error) {
         console.error('Error creating WebSocket:', error);
         isConnecting = false;
