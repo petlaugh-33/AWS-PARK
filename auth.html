@@ -1,83 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AmazonPark Login</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #F4F4F4;
-    }
-    .login-container {
-      text-align: center;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .login-container h1 {
-      margin-bottom: 20px;
-    }
-    .login-container button {
-      padding: 10px 20px;
-      font-size: 16px;
-      color: white;
-      background-color: #007BFF;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .login-container button:hover {
-      background-color: #0056B3;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AmazonPark Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #F4F4F4;
+        }
+        .login-container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .login-container h1 {
+            margin-bottom: 20px;
+        }
+        .login-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .login-container button:hover {
+            background-color: #0056B3;
+        }
+    </style>
 </head>
 <body>
-  <div class="login-container">
-    <h1>AmazonPark Login</h1>
-    <p>Please click the button below to log in.</p>
-    <button id="loginButton">Login with Cognito</button>
-  </div>
-  
-  <script type="module">
-    import { clientId, cognitoDomain, redirectUri, exchangeCodeForTokens } from './auth.js';
+    <div class="login-container">
+        <h1>AmazonPark Login</h1>
+        <p>Please click the button below to log in.</p>
+        <button id="loginButton">Login with Cognito</button>
+    </div>
 
-    // Check if we're returning from authentication
-    async function checkAuth() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
+    <script type="module">
+        // Import from auth.js
+        import { clientId, cognitoDomain, redirectUri } from './auth.js';
 
-        // If we have an authorization code, process it
-        if (code) {
-            try {
-                const user = await exchangeCodeForTokens(code);
-                // If successful, redirect to index.html
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Authentication error:', error);
-            }
-        }
-        // If user is already logged in, redirect to index
-        else if (localStorage.getItem('idToken')) {
-            window.location.href = 'index.html';
-        }
-    }
-
-    // Handle login button click
-    document.getElementById("loginButton").addEventListener("click", () => {
-        const loginUrl = `${cognitoDomain}/login?client_id=${clientId}&response_type=code&scope=aws.cognito.signin.user.admin email openid phone&redirect_uri=${encodeURIComponent(redirectUri)}`;
-        window.location.href = loginUrl;
-    });
-
-    // Check authentication status when page loads
-    checkAuth();
-  </script>
+        // Login button click handler
+        document.getElementById("loginButton").addEventListener("click", () => {
+            console.log('Login button clicked'); // Debug log
+            const loginUrl = `${cognitoDomain}/login?client_id=${clientId}&response_type=code&scope=aws.cognito.signin.user.admin email openid phone&redirect_uri=${encodeURIComponent(redirectUri)}`;
+            console.log('Redirecting to:', loginUrl); // Debug log
+            window.location.href = loginUrl;
+        });
+    </script>
 </body>
 </html>
