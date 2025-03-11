@@ -7,15 +7,15 @@ let reservationsCache = new Map();
 
 // Initialize the reservation system
 export function initializeReservationSystem() {
-    try {
-        // Set min datetime for reservation inputs
-        const now = new Date();
-        const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
-        
-        const startTimeInput = document.getElementById('startTime');
-        const endTimeInput = document.getElementById('endTime');
-        const reservationForm = document.getElementById('reservationForm');
-        
+    const now = new Date();
+    const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    
+    document.getElementById('startTime').min = minDateTime;
+    document.getElementById('endTime').min = minDateTime;
+    
+    document.getElementById('reservationForm').addEventListener('submit', handleReservationSubmit);
+    loadUserReservations();
+}
         if (!startTimeInput || !endTimeInput || !reservationForm) {
             throw new Error('Required reservation elements not found');
         }
@@ -224,7 +224,7 @@ export async function cancelReservation(reservationId) {
     
 
 // Validate datetime inputs
-export function validateDateTime() {
+function validateDateTime() {
     const startTime = new Date(document.getElementById('startTime').value);
     const endTime = new Date(document.getElementById('endTime').value);
     const now = new Date();
