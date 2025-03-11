@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AmazonPark Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #F4F4F4;
+    }
+    .login-container {
+      text-align: center;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .login-container h1 {
+      margin-bottom: 20px;
+    }
+    .login-container button {
+      padding: 10px 20px;
+      font-size: 16px;
+      color: white;
+      background-color: #007BFF;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .login-container button:hover {
+      background-color: #0056B3;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>AmazonPark Login</h1>
+    <p>Please click the button below to log in.</p>
+    <button id="loginButton">Login with Cognito</button>
+  </div>
+  <script>
+    const cognitoDomain = "https://us-east-1yk7q60v8o.auth.us-east-1.amazoncognito.com";
+    const clientId = "1uh3r35aemfub1ee1lin6o8lb1";
+    const redirectUri = "https://main.d1lgse8ryp3x19.amplifyapp.com/index.html";
+    const responseType = "code";
+    const scope = "aws.cognito.signin.user.admin email openid phone";
+
+   // Login handler
+   document.getElementById("loginButton").addEventListener("click", () => {
+            const loginUrl = `${cognitoDomain}/login?client_id=${clientId}&response_type=${responseType}&scope=${scope}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+            window.location.href = loginUrl;
+        });
+
+        // Sign out handler (if needed)
+        function signOut() {
+            const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(signOutUri)}`;
+            window.location.href = logoutUrl;
+        }
+
+        // Check if we're returning from a sign-out
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('signed-out') === 'true') {
+                // Clear any remaining local storage or session data
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+        };
+  </script>
+</body>
+</html>
