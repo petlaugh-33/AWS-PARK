@@ -170,7 +170,10 @@ export async function cancelReservation(reservationId) {
             button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
         }
 
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
+       const cancelUrl = `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`;
+        console.log('Cancel URL:', cancelUrl);
+
+        const response = await fetch(cancelUrl, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
