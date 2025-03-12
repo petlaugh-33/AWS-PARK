@@ -130,26 +130,41 @@ function validateHistoryData(data) {
 }
 
 // Update history table
-export function updateHistoryTable(history) {
+function updateHistoryTable(history) {
     const tbody = document.getElementById('historyTable');
     if (!tbody) return;
 
     tbody.innerHTML = history
         .filter(validateHistoryEntry)
-        .map(entry => `
-            <tr>
-                <td>${formatDateTime(entry.time)}</td>
-                <td>${entry.available}</td>
-                <td>${entry.occupied}</td>
-                <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
-            </tr>
-        `)
+        .map(entry => {
+            // Format the time in EST
+            const time = new Date(entry.time).toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+
+            return `
+                <tr>
+                    <td>${time}</td>
+                    <td>${entry.available}</td>
+                    <td>${entry.occupied}</td>
+                    <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
+                </tr>
+            `;
+        })
         .join('');
 }
 
-// Validate history entry
+// Add this helper function if you don't have it
 function validateHistoryEntry(entry) {
-    return entry.time && 
+    return entry && 
+           entry.time && 
            typeof entry.available === 'number' && 
            typeof entry.occupied === 'number' && 
            entry.status;
