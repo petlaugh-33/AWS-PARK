@@ -50,6 +50,27 @@
         // Import from auth.js
         import { clientId, cognitoDomain, redirectUri } from './js/auth.js';
 
+          // Check for authentication code when page loads
+    async function checkAuth() {
+        console.log('Checking for auth code...');
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+
+        if (code) {
+            console.log('Auth code found:', code);
+            try {
+                const user = await exchangeCodeForTokens(code);
+                console.log('Login successful:', user);
+                // Redirect to index.html after successful login
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Error during token exchange:', error);
+            }
+        } else {
+            console.log('No auth code found - ready for login');
+        }
+    }
+
         // Login button click handler
         document.getElementById("loginButton").addEventListener("click", () => {
             console.log('Login button clicked'); // Debug log

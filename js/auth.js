@@ -1,7 +1,7 @@
 // Configuration Variables
 export const clientId = "1uh3r35aemfub1ee1lin6o8lb1";
 export const cognitoDomain = "https://us-east-1yk7q60v8o.auth.us-east-1.amazoncognito.com";
-export const redirectUri = "https://main.d1lgse8ryp3x19.amplifyapp.com/index.html";
+export const redirectUri = "https://main.d1lgse8ryp3x19.amplifyapp.com/auth.html";
 const tokenEndpoint = `${cognitoDomain}/oauth2/token`;
 
 export function decodeToken(token) {
