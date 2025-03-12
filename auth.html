@@ -45,39 +45,43 @@
         <p>Please click the button below to log in.</p>
         <button id="loginButton">Login with Cognito</button>
     </div>
-
     <script type="module">
-        // Import from auth.js
-        import { clientId, cognitoDomain, redirectUri } from './js/auth.js';
-
-          // Check for authentication code when page loads
-    async function checkAuth() {
-        console.log('Checking for auth code...');
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-
-        if (code) {
-            console.log('Auth code found:', code);
-            try {
-                const user = await exchangeCodeForTokens(code);
-                console.log('Login successful:', user);
-                // Redirect to index.html after successful login
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Error during token exchange:', error);
+        import { clientId, cognitoDomain, redirectUri, exchangeCodeForTokens } from './js/auth.js';
+    
+        async function checkAuth() {
+            console.log('Checking for auth code...');
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+    
+            if (code) {
+                console.log('Auth code found:', code);
+                try {
+                    const user = await exchangeCodeForTokens(code);
+                    console.log('Login successful, user:', user);
+                    console.log('Tokens stored in localStorage:', {
+                        accessToken: localStorage.getItem('accessToken') ? 'Present' : 'Missing',
+                        idToken: localStorage.getItem('idToken') ? 'Present' : 'Missing',
+                        refreshToken: localStorage.getItem('refreshToken') ? 'Present' : 'Missing'
+                    });
+                    console.log('Redirecting to index.html...');
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error('Error during token exchange:', error);
+                }
+            } else {
+                console.log('No auth code found - ready for login');
             }
-        } else {
-            console.log('No auth code found - ready for login');
         }
-    }
-
-        // Login button click handler
+    
         document.getElementById("loginButton").addEventListener("click", () => {
-            console.log('Login button clicked'); // Debug log
+            console.log('Login button clicked');
             const loginUrl = `${cognitoDomain}/login?client_id=${clientId}&response_type=code&scope=aws.cognito.signin.user.admin email openid phone&redirect_uri=${encodeURIComponent(redirectUri)}`;
-            console.log('Redirecting to:', loginUrl); // Debug log
+            console.log('Redirecting to:', loginUrl);
             window.location.href = loginUrl;
         });
+    
+        checkAuth();
     </script>
+   
 </body>
 </html>

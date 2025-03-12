@@ -2,7 +2,7 @@ import { initializeStorage, cleanupStorageData } from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
-import { getCurrentUser } from './auth.js'; // Add this import
+import { getCurrentUser } from './js/auth.js'; // Add this import
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
@@ -11,9 +11,10 @@ window.cancelReservation = cancelReservation;
 
 // Add authentication check
 function checkAuthentication() {
+    console.log('Checking authentication...');
     const user = getCurrentUser();
     if (!user) {
-        console.log('No authenticated user found');
+        console.log('No authenticated user found. Redirecting to login.');
         window.location.href = 'auth.html';
         return false;
     }
@@ -21,18 +22,16 @@ function checkAuthentication() {
     return true;
 }
 
-// Modify initializeApp function
+// Modify your initializeApp function
 function initializeApp() {
     console.log('Initializing application...');
     
-    // Check authentication first
     if (!checkAuthentication()) {
         console.log('Authentication check failed. Stopping initialization.');
         return;
     }
 
     console.log('Authentication successful. Continuing initialization...');
-
     // Initialize core systems
     initializeStorage();
     initializeUI();
@@ -60,13 +59,10 @@ window.addEventListener('error', (event) => {
     handleError(event.error);
 });
 
-// Initialize when DOM is loaded
+// Make sure this event listener is present
 document.addEventListener('DOMContentLoaded', () => {
-    try {
-        initializeApp();
-    } catch (error) {
-        handleError(error);
-    }
+    console.log('DOM Content Loaded. Starting app initialization...');
+    initializeApp();
 });
 
 // Handle unload
