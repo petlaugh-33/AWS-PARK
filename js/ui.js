@@ -135,10 +135,10 @@ function updateHistoryTable(history) {
     if (!tbody) return;
 
     tbody.innerHTML = history
-        .filter(validateHistoryEntry)
+        .filter(entry => entry && entry.lastUpdated) // Validate entry has lastUpdated
         .map(entry => {
             // Format the time in EST
-            const time = new Date(entry.time).toLocaleString('en-US', {
+            const time = new Date(entry.lastUpdated).toLocaleString('en-US', {
                 timeZone: 'America/New_York',
                 year: 'numeric',
                 month: '2-digit',
@@ -152,13 +152,27 @@ function updateHistoryTable(history) {
             return `
                 <tr>
                     <td>${time}</td>
-                    <td>${entry.available}</td>
-                    <td>${entry.occupied}</td>
-                    <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
+                    <td>${entry.availableSpaces}</td>
+                    <td>${entry.occupiedSpaces}</td>
+                    <td><span class="badge bg-${getStatusBadgeColor(entry.parkingStatus)}">${entry.parkingStatus}</span></td>
                 </tr>
             `;
         })
         .join('');
+}
+
+// Helper function for status badge colors
+function getStatusBadgeColor(status) {
+    switch (status) {
+        case 'AVAILABLE':
+            return 'success';
+        case 'LIMITED':
+            return 'warning';
+        case 'FULL':
+            return 'danger';
+        default:
+            return 'secondary';
+    }
 }
 
 // Add this helper function if you don't have it
@@ -270,7 +284,7 @@ export function updateChart(data, timeframe) {
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
     try {
-        const date = convertToEST(dateString);
+        const date = new Date(dateString);
         return date.toLocaleString('en-US', {
             timeZone: 'America/New_York',
             year: 'numeric',
