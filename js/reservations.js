@@ -314,16 +314,6 @@ export async function loadUserReservations() {
     }
 }
 
-// Helper function to validate reservation
-function validateReservation(reservation) {
-    return reservation && 
-           reservation.reservationId && 
-           reservation.startTime && 
-           reservation.endTime &&
-           reservation.userId &&
-           reservation.userEmail;
-}
-
 // Export the cache if needed elsewhere
 export { reservationsCache };
 
