@@ -1,8 +1,9 @@
 import { initializeStorage, cleanupStorageData } from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
-import { initializeReservationSystem, cancelReservation } from './reservations.js';
+import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
-import { getCurrentUser } from './auth.js'; // Add this import
+import { getCurrentUser } from './auth.js';
+
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
