@@ -441,4 +441,7 @@ export function exportReservations() {
 window.cancelReservation = cancelReservation;
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeReservationSystem);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing reservation system');
+    initializeReservationSystem();
+});
