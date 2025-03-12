@@ -2,6 +2,7 @@ import { initializeStorage, cleanupStorageData } from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
+import { getCurrentUser } from './auth.js'; // Add this import
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
@@ -20,8 +21,18 @@ function checkAuthentication() {
     return true;
 }
 
-// Initialize application
+// Modify initializeApp function
 function initializeApp() {
+    console.log('Initializing application...');
+    
+    // Check authentication first
+    if (!checkAuthentication()) {
+        console.log('Authentication check failed. Stopping initialization.');
+        return;
+    }
+
+    console.log('Authentication successful. Continuing initialization...');
+
     // Initialize core systems
     initializeStorage();
     initializeUI();
@@ -33,6 +44,8 @@ function initializeApp() {
 
     // Set up periodic cleanup
     setInterval(cleanupStorageData, 60 * 60 * 1000); // Run every hour
+
+    console.log('Application initialization complete.');
 }
 
 // Handle errors
