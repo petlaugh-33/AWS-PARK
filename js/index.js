@@ -8,6 +8,18 @@ window.manualReconnect = manualReconnect;
 window.loadHistoricalData = loadHistoricalData;
 window.cancelReservation = cancelReservation;
 
+// Add authentication check
+function checkAuthentication() {
+    const user = getCurrentUser();
+    if (!user) {
+        console.log('No authenticated user found');
+        window.location.href = 'auth.html';
+        return false;
+    }
+    console.log('User authenticated:', user);
+    return true;
+}
+
 // Initialize application
 function initializeApp() {
     // Initialize core systems
