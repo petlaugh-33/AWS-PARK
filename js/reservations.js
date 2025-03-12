@@ -252,7 +252,7 @@ function validateDateTime() {
     return true;
 }
 
-let reservationsCache = new Map();
+
 
 export async function loadUserReservations() {
     try {
