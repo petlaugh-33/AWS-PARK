@@ -2,7 +2,15 @@ import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL } from './const
 import { showSuccessMessage, showErrorMessage } from './ui.js';
 import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser } from './auth.js';
-import { Auth } from '@aws-amplify/auth';
+
+
+async function getAuthHeaders() {
+    const idToken = localStorage.getItem("idToken");
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`
+    };
+}
 
 async function getAuthToken() {
     try {
@@ -77,8 +85,15 @@ function convertToEST(date) {
 }
 
 // Handle reservation form submission
-async function handleReservationSubmit(event) {
+export async function handleReservationSubmit(event) {
     event.preventDefault();
+    
+    const user = getCurrentUser();
+    if (!user) {
+        console.log('No authenticated user');
+        redirectToLogin();
+        return;
+    }
     
     if (!validateDateTime()) {
         return;
@@ -90,17 +105,24 @@ async function handleReservationSubmit(event) {
     try {
         const requestData = {
             startTime: startTime.toISOString(),
-            endTime: endTime.toISOString()
+            endTime: endTime.toISOString(),
+            userId: user.sub,
+            email: user.email
         };
         
         console.log('Submitting reservation with data:', requestData);
         
-       // In handleReservationSubmit, update the fetch call
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
-            headers: getAuthHeaders(), // Replace existing headers with this
-            body: JSON.stringify(requestData)
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestData),
+            mode: 'cors'
         });
+        
+        if (response.status === 401) {
+            redirectToLogin();
+            return;
+        }
                 
         console.log('Response status:', response.status);
         const responseText = await response.text();
@@ -115,7 +137,11 @@ async function handleReservationSubmit(event) {
 
         // Update cache
         if (data.reservationId) {
-            reservationsCache.set(data.reservationId, data);
+            reservationsCache.set(data.reservationId, {
+                ...data,
+                userId: user.sub,
+                email: user.email
+            });
         }
 
         // Clear form and show success
@@ -131,66 +157,17 @@ async function handleReservationSubmit(event) {
     }
 }
 
-// Load user reservations
-export async function loadUserReservations() {
-    try {
-        const user = getCurrentUser();
-        if (!user) {
-            console.log('No authenticated user');
-            return [];
-        }
-        console.log('Loading reservations for user:', user.email);
-
-        console.log('Loading reservations...');
-       // In loadUserReservations, update the fetch call
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
-            method: 'GET',
-            headers: getAuthHeaders() // Replace existing headers with this
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Raw data received:', data);
-        
-        let reservations = Array.isArray(data) ? data : [];
-        
-        // Filter out invalid reservations
-        reservations = reservations.filter(validateReservation);
-        
-        // Update cache
-        reservationsCache.clear();
-        reservations.forEach(reservation => {
-            reservationsCache.set(reservation.reservationId, reservation);
-        });
-        
-        // Update UI
-        updateReservationsTable(reservations);
-        
-        // Save to local storage
-        saveToLocalStorage('userReservations', reservations);
-        
-        return reservations;
-    } catch (error) {
-        console.error('Error loading reservations:', error);
-        showErrorMessage('Failed to load reservations. Please try again later.');
-        
-        // Try to load from cache
-        const cachedReservations = Array.from(reservationsCache.values());
-        if (cachedReservations.length > 0) {
-            updateReservationsTable(cachedReservations);
-            return cachedReservations;
-        }
-        
-        return [];
-    }
-}
 
 // Cancel reservation
 export async function cancelReservation(reservationId) {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            redirectToLogin();
+            return false;
+        }
+
         console.log('Attempting to cancel reservation:', reservationId);
         
         // Show loading state
@@ -200,13 +177,12 @@ export async function cancelReservation(reservationId) {
             button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
         }
 
-       const cancelUrl = `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`;
+        const cancelUrl = `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`;
         console.log('Cancel URL:', cancelUrl);
 
-        // In cancelReservation, update the fetch call
         const response = await fetch(cancelUrl, {
             method: 'DELETE',
-            headers: getAuthHeaders(), // Replace existing headers with this
+            headers: getAuthHeaders(),
             mode: 'cors'
         });
 
@@ -214,6 +190,11 @@ export async function cancelReservation(reservationId) {
         if (button) {
             button.disabled = false;
             button.innerHTML = 'Cancel';
+        }
+
+        if (response.status === 401) {
+            redirectToLogin();
+            return false;
         }
 
         // Parse response
