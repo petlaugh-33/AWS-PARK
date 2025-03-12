@@ -196,13 +196,6 @@ function createHistoryRow(entry) {
     `;
 }
 
-// Get status badge color
-function getStatusBadgeColor(status) {
-    return status === 'AVAILABLE' ? 'success' : 
-           status === 'LIMITED' ? 'warning' : 
-           'danger';
-}
-
 // Load historical data
 export async function loadHistoricalData(timeframe) {
     try {
