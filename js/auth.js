@@ -37,6 +37,7 @@ export async function exchangeCodeForTokens(authCode) {
           body: new URLSearchParams({
               grant_type: "authorization_code",
               client_id: clientId,
+              client_secret: "u6ijapc2d7qlfufgucfi2ipnpfu4dotbn1ihlvcm8d9amlmgr0e",
               code: authCode,
               redirect_uri: redirectUri,
               scope: "aws.cognito.signin.user.admin email openid profile",
