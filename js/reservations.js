@@ -4,14 +4,6 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser } from './auth.js';
 
 
-async function getAuthHeaders() {
-    const idToken = localStorage.getItem("idToken");
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`
-    };
-}
-
 async function getAuthToken() {
     try {
         const session = await Auth.currentSession();
