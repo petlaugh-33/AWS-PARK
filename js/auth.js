@@ -63,3 +63,50 @@ export async function exchangeCodeForTokens(authCode) {
       throw error;
   }
 }
+
+/**
+ * Get the current authenticated user
+ */
+export function getCurrentUser() {
+    const idToken = localStorage.getItem("idToken");
+    if (!idToken) {
+        console.log("No ID token found in localStorage.");
+        return null;
+    }
+    try {
+        const user = decodeToken(idToken);
+        // Check token expiration
+        const now = Math.floor(Date.now() / 1000);
+        if (user.exp < now) {
+            console.log("ID token has expired. Redirecting to login.");
+            redirectToLogin();
+            return null;
+        }
+        console.log("Current user:", user);
+        return user;
+    } catch (error) {
+        console.error("Error getting current user:", error);
+        return null;
+    }
+}
+
+/**
+ * Redirect to login page
+ */
+export function redirectToLogin() {
+    window.location.href = 'auth.html';
+}
+
+/**
+ * Handle user logout
+ */
+export function logoutUser() {
+    // Clear tokens
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("idToken");
+    localStorage.removeItem("refreshToken");
+    
+    // Redirect to Cognito logout URL
+    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent('https://main.d1lgse8ryp3x19.amplifyapp.com/auth.html')}`;
+    window.location.href = logoutUrl;
+}
