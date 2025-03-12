@@ -2,6 +2,17 @@ import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL } from './const
 import { showSuccessMessage, showErrorMessage } from './ui.js';
 import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser } from './auth.js';
+import { Auth } from '@aws-amplify/auth';
+
+async function getAuthToken() {
+    try {
+        const session = await Auth.currentSession();
+        return session.getIdToken().getJwtToken();
+    } catch (error) {
+        console.error('Error getting auth token:', error);
+        throw error;
+    }
+}
 
 
 // Add this after your imports
