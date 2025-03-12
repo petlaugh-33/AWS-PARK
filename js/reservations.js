@@ -1,6 +1,18 @@
 import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL } from './constants.js';
 import { showSuccessMessage, showErrorMessage } from './ui.js';
 import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
+import { getCurrentUser } from './auth.js';
+
+
+// Add this after your imports
+function getAuthHeaders() {
+    const token = localStorage.getItem('accessToken');
+    return {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+}
 
 // Cache for reservations
 let reservationsCache = new Map();
@@ -72,15 +84,13 @@ async function handleReservationSubmit(event) {
         
         console.log('Submitting reservation with data:', requestData);
         
+       // In handleReservationSubmit, update the fetch call
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
+            headers: getAuthHeaders(), // Replace existing headers with this
             body: JSON.stringify(requestData)
         });
-        
+                
         console.log('Response status:', response.status);
         const responseText = await response.text();
         console.log('Raw response:', responseText);
@@ -113,13 +123,18 @@ async function handleReservationSubmit(event) {
 // Load user reservations
 export async function loadUserReservations() {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            return [];
+        }
+        console.log('Loading reservations for user:', user.email);
+
         console.log('Loading reservations...');
+       // In loadUserReservations, update the fetch call
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
+            headers: getAuthHeaders() // Replace existing headers with this
         });
         
         if (!response.ok) {
@@ -177,12 +192,10 @@ export async function cancelReservation(reservationId) {
        const cancelUrl = `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`;
         console.log('Cancel URL:', cancelUrl);
 
+        // In cancelReservation, update the fetch call
         const response = await fetch(cancelUrl, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
+            headers: getAuthHeaders(), // Replace existing headers with this
             mode: 'cors'
         });
 
