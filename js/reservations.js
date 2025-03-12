@@ -91,11 +91,6 @@ export async function handleReservationSubmit(event) {
     const user = getCurrentUser();
     if (!user) {
         console.log('No authenticated user');
-        redirectToLogin();
-        return;
-    }
-    
-    if (!validateDateTime()) {
         return;
     }
     
@@ -106,17 +101,20 @@ export async function handleReservationSubmit(event) {
         const requestData = {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            userId: user.sub,
-            email: user.email
+            userId: user.sub,        // Add user ID
+            userEmail: user.email    // Add user email
         };
         
         console.log('Submitting reservation with data:', requestData);
         
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(requestData),
-            mode: 'cors'
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem("idToken")}`
+            },
+            body: JSON.stringify(requestData)
         });
         
         if (response.status === 401) {
@@ -261,6 +259,81 @@ function validateDateTime() {
 
     return true;
 }
+
+let reservationsCache = new Map();
+
+export async function loadUserReservations() {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            return [];
+        }
+        console.log('Loading reservations for user:', user.email);
+
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem("idToken")}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Raw data received:', data);
+        
+        let reservations = Array.isArray(data) ? data : [];
+        
+        // Filter reservations for the current user
+        reservations = reservations.filter(reservation => 
+            reservation.userId === user.sub || reservation.userEmail === user.email
+        );
+        
+        // Update cache
+        reservationsCache.clear();
+        reservations.forEach(reservation => {
+            reservationsCache.set(reservation.reservationId, reservation);
+        });
+        
+        // Update UI
+        updateReservationsTable(reservations);
+        
+        // Save to local storage
+        saveToLocalStorage('userReservations', reservations);
+        
+        return reservations;
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+        showErrorMessage('Failed to load reservations. Please try again later.');
+        
+        // Try to load from cache
+        const cachedReservations = Array.from(reservationsCache.values());
+        if (cachedReservations.length > 0) {
+            updateReservationsTable(cachedReservations);
+            return cachedReservations;
+        }
+        
+        return [];
+    }
+}
+
+// Helper function to validate reservation
+function validateReservation(reservation) {
+    return reservation && 
+           reservation.reservationId && 
+           reservation.startTime && 
+           reservation.endTime &&
+           reservation.userId &&
+           reservation.userEmail;
+}
+
+// Export the cache if needed elsewhere
+export { reservationsCache };
 
 // Validate reservation object
 function validateReservation(reservation) {
