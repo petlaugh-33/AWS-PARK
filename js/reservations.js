@@ -336,46 +336,53 @@ function validateReservation(reservation) {
 }
 
 // Update reservations table
-function updateReservationsTable(reservations) {
-    console.log('Updating table with reservations:', reservations);
-    
-    const tbody = document.getElementById('reservationsTable');
-    if (!tbody) {
-        console.error('Table body element not found');
-        return;
+export async function loadUserReservations() {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            return [];
+        }
+        console.log('Loading reservations for user:', user.email);
+
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Raw data received:', data);
+        
+        let reservations = Array.isArray(data) ? data : [];
+        
+        // Filter reservations for the current user
+        reservations = reservations.filter(reservation => 
+            reservation.userId === user.sub || reservation.userEmail === user.email
+        );
+        
+        console.log('Filtered reservations:', reservations);
+        
+        // Update cache
+        reservationsCache.clear();
+        reservations.forEach(reservation => {
+            reservationsCache.set(reservation.reservationId, reservation);
+        });
+        
+        // Update UI
+        updateReservationsTable(reservations);
+        
+        return reservations;
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+        showErrorMessage('Failed to load reservations. Please try again later.');
+        return [];
     }
-
-    // Filter out cancelled reservations and sort by start time
-    const activeReservations = reservations
-        .filter(reservation => reservation.status !== 'CANCELLED')
-        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-
-    if (activeReservations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No active reservations found</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = activeReservations
-        .map(reservation => `
-            <tr>
-                <td>${formatDateTime(reservation.startTime)}</td>
-                <td>${formatDateTime(reservation.endTime)}</td>
-                <td>Spot ${reservation.spotNumber || 'N/A'}</td>
-                <td>
-                    <span class="badge bg-${getStatusColor(reservation.status)}">
-                        ${reservation.status}
-                    </span>
-                </td>
-                <td>
-                    ${reservation.status === 'CONFIRMED' ? 
-                        `<button class="btn btn-sm btn-danger" onclick="window.cancelReservation('${reservation.reservationId}')">
-                            Cancel
-                        </button>` : 
-                        ''}
-                </td>
-            </tr>
-        `).join('');
 }
+
 
 
 // Format datetime for display
