@@ -314,6 +314,43 @@ export async function loadUserReservations() {
     }
 }
 
+function updateReservationsTable(reservations) {
+    console.log('Updating table with reservations:', reservations);
+    
+    const tbody = document.getElementById('reservationsTable');
+    if (!tbody) {
+        console.error('Table body element not found');
+        return;
+    }
+
+    if (reservations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No reservations found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = reservations
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+        .map(reservation => `
+            <tr>
+                <td>${formatDateTime(reservation.startTime)}</td>
+                <td>${formatDateTime(reservation.endTime)}</td>
+                <td>Spot ${reservation.spotNumber || 'N/A'}</td>
+                <td>
+                    <span class="badge bg-${getStatusColor(reservation.status)}">
+                        ${reservation.status}
+                    </span>
+                </td>
+                <td>
+                    ${reservation.status === 'CONFIRMED' ? 
+                        `<button class="btn btn-sm btn-danger" onclick="window.cancelReservation('${reservation.reservationId}')">
+                            Cancel
+                        </button>` : 
+                        ''}
+                </td>
+            </tr>
+        `).join('');
+}
+
 // Export the cache if needed elsewhere
 export { reservationsCache };
 
