@@ -335,56 +335,6 @@ function validateReservation(reservation) {
     return true;
 }
 
-// Update reservations table
-export async function loadUserReservations() {
-    try {
-        const user = getCurrentUser();
-        if (!user) {
-            console.log('No authenticated user');
-            return [];
-        }
-        console.log('Loading reservations for user:', user.email);
-
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
-            method: 'GET',
-            headers: getAuthHeaders()
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Raw data received:', data);
-        
-        let reservations = Array.isArray(data) ? data : [];
-        
-        // Filter reservations for the current user
-        reservations = reservations.filter(reservation => 
-            reservation.userId === user.sub || reservation.userEmail === user.email
-        );
-        
-        console.log('Filtered reservations:', reservations);
-        
-        // Update cache
-        reservationsCache.clear();
-        reservations.forEach(reservation => {
-            reservationsCache.set(reservation.reservationId, reservation);
-        });
-        
-        // Update UI
-        updateReservationsTable(reservations);
-        
-        return reservations;
-    } catch (error) {
-        console.error('Error loading reservations:', error);
-        showErrorMessage('Failed to load reservations. Please try again later.');
-        return [];
-    }
-}
-
-
-
 // Format datetime for display
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
