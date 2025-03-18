@@ -282,49 +282,37 @@ export async function loadUserReservations() {
             return [];
         }
 
-        // Get the ID token
-        const idToken = localStorage.getItem("idToken"); // Changed from "id" to "idToken"
+        const idToken = localStorage.getItem("idToken");
         if (!idToken) {
-            console.error('No ID token found in localStorage');
+            console.error('No idToken found');
             return [];
         }
 
-        // Log request details for debugging
-        console.log('Making request with:', {
-            url: `${RESERVATIONS_API_ENDPOINT}/reservations`,
-            token: `${idToken.substring(0, 10)}...`,
-            user: {
-                sub: user.sub,
-                email: user.email
-            }
-        });
+        console.log('Making request with token:', idToken.substring(0, 20) + '...');
 
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'GET',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`,
-                'Accept': 'application/json'
+                'Authorization': `Bearer ${idToken}`
             }
         });
 
-        // Log response details
         console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
+        
         if (response.status === 401) {
             console.error('Unauthorized - token might be expired');
-            // Optionally redirect to login or refresh token
-            throw new Error('Authentication expired');
+            // Redirect to login or handle token refresh
+            return [];
         }
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('Raw data received:', data);
         
