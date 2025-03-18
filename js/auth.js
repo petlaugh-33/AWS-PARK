@@ -4,6 +4,7 @@ export const cognitoDomain = "https://us-east-1yk7q60v8o.auth.us-east-1.amazonco
 export const redirectUri = "https://main.d1lgse8ryp3x19.amplifyapp.com/auth.html";
 const tokenEndpoint = `${cognitoDomain}/oauth2/token`;
 
+// test test test
 export function decodeToken(token) {
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
