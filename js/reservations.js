@@ -262,16 +262,14 @@ export async function loadUserReservations() {
             console.log('No authenticated user');
             return [];
         }
-        console.log('Loading reservations for user:', user.email);
 
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'GET',
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem("idToken")}`
-            },
-            credentials: 'include'  // Add this line
+            }
         });
         
         if (!response.ok) {
