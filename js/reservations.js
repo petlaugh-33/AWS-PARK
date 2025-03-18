@@ -102,11 +102,11 @@ export async function handleReservationSubmit(event) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('idToken')}`  // Make sure this is set
+                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(requestData),
+            credentials: 'include'  // Add this line
         });
-        
         
         if (response.status === 401) {
             redirectToLogin();
@@ -146,8 +146,6 @@ export async function handleReservationSubmit(event) {
     }
 }
 
-
-// Cancel reservation
 export async function cancelReservation(reservationId) {
     try {
         const user = getCurrentUser();
@@ -171,8 +169,12 @@ export async function cancelReservation(reservationId) {
 
         const response = await fetch(cancelUrl, {
             method: 'DELETE',
-            headers: getAuthHeaders(),
-            mode: 'cors'
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
+            },
+            credentials: 'include'  // Add this line
         });
 
         // Reset button state
@@ -268,7 +270,8 @@ export async function loadUserReservations() {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem("idToken")}`
-            }
+            },
+            credentials: 'include'  // Add this line
         });
         
         if (!response.ok) {
