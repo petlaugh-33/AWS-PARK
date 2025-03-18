@@ -282,16 +282,46 @@ export async function loadUserReservations() {
             return [];
         }
 
+        // Get the ID token
+        const idToken = localStorage.getItem("idToken"); // Changed from "id" to "idToken"
+        if (!idToken) {
+            console.error('No ID token found in localStorage');
+            return [];
+        }
+
+        // Log request details for debugging
+        console.log('Making request with:', {
+            url: `${RESERVATIONS_API_ENDPOINT}/reservations`,
+            token: `${idToken.substring(0, 10)}...`,
+            user: {
+                sub: user.sub,
+                email: user.email
+            }
+        });
+
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'GET',
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem("id")}`
+                'Authorization': `Bearer ${idToken}`,
+                'Accept': 'application/json'
             }
         });
+
+        // Log response details
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (response.status === 401) {
+            console.error('Unauthorized - token might be expired');
+            // Optionally redirect to login or refresh token
+            throw new Error('Authentication expired');
+        }
         
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -305,6 +335,28 @@ export async function loadUserReservations() {
             reservation.userId === user.sub || reservation.userEmail === user.email
         );
         
+        console.log('Filtered reservations:', reservations);
+
+        // Validate each reservation
+        reservations = reservations.map(reservation => {
+            // Ensure all required fields are present
+            if (!reservation.reservationId || !reservation.startTime || !reservation.endTime) {
+                console.warn('Invalid reservation data:', reservation);
+                return null;
+            }
+
+            // Convert dates to proper format
+            try {
+                reservation.startTime = new Date(reservation.startTime).toISOString();
+                reservation.endTime = new Date(reservation.endTime).toISOString();
+            } catch (e) {
+                console.warn('Invalid date in reservation:', e);
+                return null;
+            }
+
+            return reservation;
+        }).filter(Boolean); // Remove any null entries
+
         // Update cache
         reservationsCache.clear();
         reservations.forEach(reservation => {
@@ -318,6 +370,7 @@ export async function loadUserReservations() {
         saveToLocalStorage('userReservations', reservations);
         
         return reservations;
+
     } catch (error) {
         console.error('Error loading reservations:', error);
         showErrorMessage('Failed to load reservations. Please try again later.');
@@ -325,13 +378,34 @@ export async function loadUserReservations() {
         // Try to load from cache
         const cachedReservations = Array.from(reservationsCache.values());
         if (cachedReservations.length > 0) {
+            console.log('Using cached reservations:', cachedReservations);
             updateReservationsTable(cachedReservations);
             return cachedReservations;
         }
         
+        // If everything fails, return empty array
         return [];
+    } finally {
+        // Any cleanup code if needed
     }
 }
+
+// Add this helper function to validate dates
+function isValidDate(date) {
+    return date instanceof Date && !isNaN(date);
+}
+
+// Add this helper function to check if a reservation is valid
+function isValidReservation(reservation) {
+    return (
+        reservation &&
+        typeof reservation === 'object' &&
+        typeof reservation.reservationId === 'string' &&
+        isValidDate(new Date(reservation.startTime)) &&
+        isValidDate(new Date(reservation.endTime))
+    );
+}
+
 
 function updateReservationsTable(reservations) {
     console.log('Updating table with reservations:', reservations);
