@@ -287,7 +287,7 @@ export async function loadUserReservations() {
             credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem("idToken")}`
+                'Authorization': `Bearer ${localStorage.getItem("id")}`
             }
         });
         
