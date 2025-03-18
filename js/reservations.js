@@ -1,6 +1,6 @@
 import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL } from './constants.js';
 import { showSuccessMessage, showErrorMessage } from './ui.js';
-import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
+import { saveToLocalStorage, loadFromLocalStorage, getAuthTokens, isAuthenticated, getCurrentUserInfo } from './storage.js';
 import { getCurrentUser } from './auth.js';
 
 
