@@ -14,6 +14,25 @@ async function getAuthToken() {
     }
 }
 
+async function makeAuthenticatedRequest() {
+    const idToken = localStorage.getItem('idToken'); // or however you store your token
+    
+    try {
+        const response = await fetch('RESERVATIONS_API_ENDPOINT', {
+            method: 'GET', // or POST, etc.
+            headers: {
+                'Authorization': `Bearer ${idToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('API request failed:', error);
+        throw error;
+    }
+}
 
 // Add this after your imports
 function getAuthHeaders() {
