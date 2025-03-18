@@ -92,9 +92,7 @@ export async function handleReservationSubmit(event) {
     try {
         const requestData = {
             startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            userId: user.sub,        // Add user ID
-            userEmail: user.email    // Add user email
+            endTime: endTime.toISOString()
         };
         
         console.log('Submitting reservation with data:', requestData);
@@ -104,10 +102,11 @@ export async function handleReservationSubmit(event) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem("idToken")}`
+                'Authorization': `Bearer ${localStorage.getItem('idToken')}`  // Make sure this is set
             },
             body: JSON.stringify(requestData)
         });
+        
         
         if (response.status === 401) {
             redirectToLogin();
