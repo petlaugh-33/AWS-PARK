@@ -1,6 +1,13 @@
 
 import { STORAGE_KEYS } from './constants.js';
 
+// Authentication token keys
+const TOKEN_KEYS = {
+    ID_TOKEN: 'idToken',
+    ACCESS_TOKEN: 'accessToken',
+    REFRESH_TOKEN: 'refreshToken'
+};
+
 // Save data to localStorage
 export function saveToLocalStorage(key, data) {
     try {
@@ -13,6 +20,77 @@ export function saveToLocalStorage(key, data) {
     } catch (error) {
         console.error('Error saving to localStorage:', error);
         return false;
+    }
+}
+
+// Authentication token management
+export function saveAuthTokens(tokens) {
+    try {
+        localStorage.setItem(TOKEN_KEYS.ID_TOKEN, tokens.idToken);
+        localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, tokens.accessToken);
+        if (tokens.refreshToken) {
+            localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, tokens.refreshToken);
+        }
+        return true;
+    } catch (error) {
+        console.error('Error saving auth tokens:', error);
+        return false;
+    }
+}
+
+export function getAuthTokens() {
+    try {
+        return {
+            idToken: localStorage.getItem(TOKEN_KEYS.ID_TOKEN),
+            accessToken: localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN),
+            refreshToken: localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN)
+        };
+    } catch (error) {
+        console.error('Error getting auth tokens:', error);
+        return null;
+    }
+}
+
+export function clearAuthTokens() {
+    try {
+        localStorage.removeItem(TOKEN_KEYS.ID_TOKEN);
+        localStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
+        return true;
+    } catch (error) {
+        console.error('Error clearing auth tokens:', error);
+        return false;
+    }
+}
+
+export function isAuthenticated() {
+    const idToken = localStorage.getItem(TOKEN_KEYS.ID_TOKEN);
+    if (!idToken) return false;
+    
+    try {
+        const payload = JSON.parse(atob(idToken.split('.')[1]));
+        const expirationTime = payload.exp * 1000;
+        return Date.now() < expirationTime;
+    } catch (error) {
+        console.error('Error checking authentication:', error);
+        return false;
+    }
+}
+
+export function getCurrentUserInfo() {
+    const idToken = localStorage.getItem(TOKEN_KEYS.ID_TOKEN);
+    if (!idToken) return null;
+    
+    try {
+        const payload = JSON.parse(atob(idToken.split('.')[1]));
+        return {
+            sub: payload.sub,
+            email: payload.email,
+            username: payload['cognito:username']
+        };
+    } catch (error) {
+        console.error('Error getting user info:', error);
+        return null;
     }
 }
 
@@ -40,7 +118,7 @@ export function getStorageTimestamp(key) {
 
 // Clean up old data
 export function cleanupStorageData() {
-    const ONE_DAY = 24 * 60 * 60 * 1000; // milliseconds
+    const ONE_DAY = 24 * 60 * 60 * 1000;
     const now = new Date().getTime();
     
     Object.keys(localStorage).forEach(key => {
@@ -60,77 +138,6 @@ export function cleanupStorageData() {
             console.error(`Error cleaning up key ${key}:`, error);
         }
     });
-}
-
-// Update data storage time display
-export function updateDataStorageTime() {
-    const storageTimeElement = document.getElementById('dataStorageTime');
-    if (storageTimeElement) {
-        const timestamp = getStorageTimestamp(STORAGE_KEYS.CURRENT_STATUS);
-        if (timestamp) {
-            const storedTime = new Date(timestamp);
-            storageTimeElement.textContent = storedTime.toLocaleString();
-        } else {
-            storageTimeElement.textContent = 'No data stored';
-        }
-    }
-}
-
-// Initialize storage with default values
-export function initializeStorage() {
-    const defaultValues = {
-        [STORAGE_KEYS.HISTORY]: [],
-        [STORAGE_KEYS.CURRENT_STATUS]: null,
-        [STORAGE_KEYS.LAST_CHART_TYPE]: 'daily'
-    };
-
-    Object.entries(defaultValues).forEach(([key, value]) => {
-        if (!localStorage.getItem(key)) {
-            saveToLocalStorage(key, value);
-        }
-    });
-}
-
-// Clear all application storage
-export function clearStorage() {
-    Object.values(STORAGE_KEYS).forEach(key => {
-        localStorage.removeItem(key);
-    });
-}
-
-// Get storage usage statistics
-export function getStorageStats() {
-    const stats = {
-        totalItems: 0,
-        totalSize: 0,
-        items: {}
-    };
-
-    Object.keys(localStorage).forEach(key => {
-        const item = localStorage.getItem(key);
-        const size = new Blob([item]).size;
-        
-        stats.totalItems++;
-        stats.totalSize += size;
-        stats.items[key] = {
-            size: size,
-            lastUpdated: getStorageTimestamp(key)
-        };
-    });
-
-    return stats;
-}
-
-// Check if storage is available
-export function isStorageAvailable() {
-    try {
-        const test = '__storage_test__';
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        return true;
-    } catch (e) {
-        return false;
-    }
 }
 
 // Save data with expiration
@@ -169,37 +176,17 @@ export function loadWithExpiration(key) {
     }
 }
 
-// Batch save multiple items
-export function batchSave(items) {
-    const results = {
-        success: [],
-        failed: []
+// Initialize storage with default values
+export function initializeStorage() {
+    const defaultValues = {
+        [STORAGE_KEYS.HISTORY]: [],
+        [STORAGE_KEYS.CURRENT_STATUS]: null,
+        [STORAGE_KEYS.LAST_CHART_TYPE]: 'daily'
     };
 
-    items.forEach(({ key, data }) => {
-        try {
-            if (saveToLocalStorage(key, data)) {
-                results.success.push(key);
-            } else {
-                results.failed.push(key);
-            }
-        } catch (error) {
-            results.failed.push(key);
-        }
-    });
-
-    return results;
-}
-
-// Subscribe to storage changes
-export function subscribeToStorageChanges(callback) {
-    window.addEventListener('storage', (event) => {
-        if (Object.values(STORAGE_KEYS).includes(event.key)) {
-            callback({
-                key: event.key,
-                oldValue: event.oldValue ? JSON.parse(event.oldValue) : null,
-                newValue: event.newValue ? JSON.parse(event.newValue) : null
-            });
+    Object.entries(defaultValues).forEach(([key, value]) => {
+        if (!localStorage.getItem(key)) {
+            saveToLocalStorage(key, value);
         }
     });
 }
@@ -230,6 +217,7 @@ export function importStorageData(data) {
         return false;
     }
 }
+
 
 // Usage example:
 /*
