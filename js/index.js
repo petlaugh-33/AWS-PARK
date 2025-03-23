@@ -3,6 +3,8 @@ import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
+// Add this with your other imports
+import { embedQuickSightDashboard } from './quicksight.js';
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
@@ -117,8 +119,10 @@ function switchTab(tabId) {
     document.getElementById(tabId).classList.add('active');
 
     // Load data for analysis tab if selected
-    if (tabId === 'analysisTab') {
-        loadHistoricalData('daily');
+    // When Analysis tab is selected, load daily view by default
+        if (tabId === 'analysisTab') {
+        embedQuickSightDashboard('daily');  // Load daily view by default 
+
     }
 }
 

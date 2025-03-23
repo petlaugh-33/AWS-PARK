@@ -191,19 +191,19 @@
         <!-- Analysis Page -->
         <div id="analysisPage" style="display: none;">
             <!-- Historical Analysis Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Historical Analysis</h5>
-                    <div id="chartError" class="alert alert-danger" style="display:none;"></div>
-                    <div class="btn-group mb-3">
-                        <button class="btn btn-outline-primary" onclick="window.loadHistoricalData('daily')">Daily</button>
-                        <button class="btn btn-outline-primary" onclick="window.loadHistoricalData('weekly')">Weekly</button>
-                        <button class="btn btn-outline-primary" onclick="window.loadHistoricalData('monthly')">Monthly</button>
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">Historical Analysis</h5>
+                        <div id="chartError" class="alert alert-danger" style="display:none;"></div>
+                        <div class="btn-group mb-3">
+                            <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('daily')">Daily</button>
+                            <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('weekly')">Weekly</button>
+                        </div>
+                        <div id="peakInfo" class="mb-2"></div>
+                        <div id="quicksight-dashboard" style="height: 700px; width: 100%;"></div>
+                        <canvas id="occupancyChart"></canvas>
                     </div>
-                    <div id="peakInfo" class="mb-2"></div>
-                    <canvas id="occupancyChart"></canvas>
                 </div>
-            </div>
 
             <!-- Time Analysis Card -->
             <div class="card shadow-sm mb-4">
