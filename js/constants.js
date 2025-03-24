@@ -2,6 +2,8 @@
 export const RESERVATIONS_API_ENDPOINT = 'https://wszwvwc915.execute-api.us-east-1.amazonaws.com/prod';
 export const API_ENDPOINT = 'https://7rw5ezddjj.execute-api.us-east-1.amazonaws.com/prod';
 export const WEBSOCKET_URL = 'wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production';
+// Add this new constant
+export const CONFIRMATION_ENDPOINT = 'https://wszwvwc915.execute-api.us-east-1.amazonaws.com/prod/send-confirmation';
 
 // Timing constants
 export const RESERVATION_REFRESH_INTERVAL = 30000; // 30 seconds

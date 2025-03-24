@@ -1,4 +1,4 @@
-import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL } from './constants.js';
+import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL, CONFIRMATION_ENDPOINT } from './constants.js';
 import { showSuccessMessage, showErrorMessage } from './ui.js';
 import { saveToLocalStorage, loadFromLocalStorage, getAuthTokens, isAuthenticated, getCurrentUserInfo } from './storage.js';
 import { getCurrentUser } from './auth.js';
@@ -150,6 +150,31 @@ export async function handleReservationSubmit(event) {
                 userId: user.sub,
                 email: user.email
             });
+        }
+        // Add confirmation email here
+        if (data.reservationId) {
+            try {
+                const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('idToken')}`
+                    },
+                    body: JSON.stringify({
+                        reservationId: data.reservationId,
+                        userEmail: user.email,
+                        startTime: startTime,
+                        endTime: endTime
+                    })
+                });
+                
+                if (confirmResponse.ok) {
+                    console.log('Confirmation email sent successfully');
+                }
+            } catch (emailError) {
+                console.error('Error sending confirmation email:', emailError);
+                // Don't block reservation success if email fails
+            }
         }
 
         // Clear form and show success
