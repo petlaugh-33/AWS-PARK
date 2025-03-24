@@ -9,7 +9,7 @@ export function embedQuickSightDashboard(type = 'daily') {
         container.innerHTML = `
             <iframe
                 width="100%"
-                height="900px"
+                height="500px"
                 src="${dashboardUrls[type]}"
                 frameborder="0"
                 allowfullscreen>
