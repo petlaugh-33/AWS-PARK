@@ -7,10 +7,11 @@ export function embedQuickSightDashboard(type = 'daily') {
         const container = document.getElementById('quicksight-dashboard');
         container.innerHTML = `
             <iframe
-                width="100%"
-                height="1000px"
+                width="1200px"
+                height="800px"
                 src="${dashboardUrls[type]}"
                 frameborder="0"
+                style="display: block; margin: 0 auto;"
                 allowfullscreen>
             </iframe>
         `;
