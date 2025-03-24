@@ -11,7 +11,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
-
+    <style>
+        .footer {
+            background-color: #232f3e;
+            color: white;
+            padding: 1rem 0;
+            position: relative;
+            margin-top: 2rem;
+        }
+    </style>
 </head>
 <body>
 
@@ -126,13 +134,13 @@
                     <form id="reservationForm" class="mb-3">
                         <div class="row g-3">
                             <div class="col-md-6">
-    <label class="form-label">Start Time (EST)</label>
-    <input type="datetime-local" class="form-control" id="startTime" required>
-</div>
-<div class="col-md-6">
-    <label class="form-label">End Time (EST)</label>
-    <input type="datetime-local" class="form-control" id="endTime" required>
-</div>
+                                <label class="form-label">Start Time (EST)</label>
+                                <input type="datetime-local" class="form-control" id="startTime" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Time (EST)</label>
+                                <input type="datetime-local" class="form-control" id="endTime" required>
+                            </div>
                             <div class="col-12">
                                 <button type="submit" class="btn btn-primary">Make Reservation</button>
                             </div>
@@ -191,18 +199,18 @@
         <!-- Analysis Page -->
         <div id="analysisPage" style="display: none;">
             <!-- Historical Analysis Card -->
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Historical Analysis</h5>
-                        <div id="chartError" class="alert alert-danger" style="display:none;"></div>
-                        <div class="btn-group mb-3">
-                            <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('daily')">Daily</button>
-                            <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('weekly')">Weekly</button>
-                        </div>
-                        <div id="peakInfo" class="mb-2"></div>
-                        <div id="quicksight-dashboard" style="height: 100vh; width: 100%; padding: 20px;"></div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Historical Analysis</h5>
+                    <div id="chartError" class="alert alert-danger" style="display:none;"></div>
+                    <div class="btn-group mb-3">
+                        <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('daily')">Daily</button>
+                        <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('weekly')">Weekly</button>
                     </div>
+                    <div id="peakInfo" class="mb-2"></div>
+                    <div id="quicksight-dashboard" style="height: 100vh; width: 100%; padding: 20px;"></div>
                 </div>
+            </div>
 
             <!-- Time Analysis Card -->
             <div class="card shadow-sm mb-4">
@@ -222,6 +230,13 @@
             </div>
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto">
+        <div class="container">
+            <p class="text-center mb-0">&copy; 2025 AmazonPark. All rights reserved.</p>
+        </div>
+    </footer>
 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
