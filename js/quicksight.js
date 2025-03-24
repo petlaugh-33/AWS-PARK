@@ -10,8 +10,9 @@ export function embedQuickSightDashboard(type = 'daily') {
             <iframe
                 width="100%"
                 height="500px"
-                src="${dashboardUrls[type]}"
+                src="${dashboardUrls[type]}?&css=body{background:transparent}"
                 frameborder="0"
+                style="transform: scale(1.0); transform-origin: 0 0;"
                 allowfullscreen>
             </iframe>
         `;
