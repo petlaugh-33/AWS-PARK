@@ -12,7 +12,6 @@ export function embedQuickSightDashboard(type = 'daily') {
                 height="500px"
                 src="${dashboardUrls[type]}"
                 frameborder="0"
-                style="max-width: 1400px; margin: 0 auto;"
                 allowfullscreen>
             </iframe>
         `;
