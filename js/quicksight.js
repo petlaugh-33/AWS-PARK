@@ -10,7 +10,8 @@ function getCurrentDate() {
 
 const API_ENDPOINT = 'https://g11syiymjl.execute-api.us-east-1.amazonaws.com/prod';
 
-async function embedDashboard(containerDiv, dashboardType) {
+
+export async function embedQuickSightDashboard(containerDiv, dashboardType) {
     try {
         // Fetch embed URL from our API
         const response = await fetch(`${API_ENDPOINT}?type=${dashboardType}`);
