@@ -53,6 +53,18 @@ function initializeWebSocketWithAuth() {
     }
 }
 
+// Add event listeners for dashboard buttons
+function setupDashboardButtons() {
+    const dailyBtn = document.getElementById('dailyDashboard');
+    const weeklyBtn = document.getElementById('weeklyDashboard');
+    const dashboardContainer = document.getElementById('embedded-dashboard');
+
+    if (dailyBtn && weeklyBtn && dashboardContainer) {
+        dailyBtn.addEventListener('click', () => embedQuickSightDashboard(dashboardContainer, 'daily'));
+        weeklyBtn.addEventListener('click', () => embedQuickSightDashboard(dashboardContainer, 'weekly'));
+    }
+}
+
 // Initialize application
 function initializeApp() {
     console.log('Initializing application...');
@@ -84,6 +96,9 @@ function initializeApp() {
     // Set up tab navigation if it exists
     setupTabNavigation();
 
+    // Add this line
+    setupDashboardButtons();
+
     console.log('Application initialization complete.');
 }
 
@@ -109,6 +124,7 @@ function setupTabNavigation() {
 }
 
 // Handle tab switching
+// Update the switchTab function
 function switchTab(tabId) {
     document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
     document.getElementById('analysisPage').style.display = tabId === 'analysisTab' ? 'block' : 'none';
@@ -119,10 +135,9 @@ function switchTab(tabId) {
     document.getElementById(tabId).classList.add('active');
 
     // Load data for analysis tab if selected
-    // When Analysis tab is selected, load daily view by default
-        if (tabId === 'analysisTab') {
-        embedQuickSightDashboard('daily');  // Load daily view by default 
-
+    if (tabId === 'analysisTab') {
+        const dashboardContainer = document.getElementById('embedded-dashboard');
+        embedQuickSightDashboard(dashboardContainer, 'daily');  // Load daily view by default
     }
 }
 
