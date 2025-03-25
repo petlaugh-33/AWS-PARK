@@ -10,7 +10,6 @@ function getCurrentDate() {
 
 const API_ENDPOINT = 'https://g11syiymjl.execute-api.us-east-1.amazonaws.com/prod';
 
-
 export async function embedQuickSightDashboard(containerDiv, dashboardType) {
     try {
         // Fetch embed URL from our API
@@ -50,37 +49,6 @@ export async function embedQuickSightDashboard(containerDiv, dashboardType) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const containerDiv = document.getElementById('embedded-dashboard');
-    const dailyBtn = document.getElementById('dailyDashboard');
-    const weeklyBtn = document.getElementById('weeklyDashboard');
-    const dateSpan = document.getElementById('currentDate');
+// Remove the DOMContentLoaded event listener since we're handling this in index.js
+export { getCurrentDate };
 
-    // Set current date
-    if (dateSpan) {
-        dateSpan.textContent = getCurrentDate();
-    }
-
-    // Event listeners for buttons
-    if (dailyBtn) {
-        dailyBtn.addEventListener('click', function() {
-            embedDashboard(containerDiv, 'daily');
-            dailyBtn.classList.add('active');
-            weeklyBtn.classList.remove('active');
-        });
-    }
-
-    if (weeklyBtn) {
-        weeklyBtn.addEventListener('click', function() {
-            embedDashboard(containerDiv, 'weekly');
-            weeklyBtn.classList.add('active');
-            dailyBtn.classList.remove('active');
-        });
-    }
-
-    // Load daily dashboard by default
-    embedDashboard(containerDiv, 'daily');
-    if (dailyBtn) {
-        dailyBtn.classList.add('active');
-    }
-});
