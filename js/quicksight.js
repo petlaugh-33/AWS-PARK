@@ -1,23 +1,85 @@
-export function embedQuickSightDashboard(type = 'daily') {
+function getCurrentDate() {
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0');
+    var yyyy = today.getFullYear();
+
+    today = yyyy + '-' + mm + '-' + dd;
+    return today;
+}
+
+const API_ENDPOINT = 'https://g11syiymjl.execute-api.us-east-1.amazonaws.com/prod';
+
+async function embedDashboard(containerDiv, dashboardType) {
     try {
-        const dashboardUrls = {
-            daily: "https://us-east-1.quicksight.aws.amazon.com/sn/embed/share/accounts/160885289976/dashboards/f54f792c-9a8f-4d9e-b679-227e1c2257c3/sheets/f54f792c-9a8f-4d9e-b679-227e1c2257c3_ffda5cb1-add2-40e6-a672-4005609c11f3/visuals/f54f792c-9a8f-4d9e-b679-227e1c2257c3_405a46fe-02f4-4183-a569-bd23af4ebb5a?directory_alias=AmazonPark-PeakTimes",
-            weekly: "https://us-east-1.quicksight.aws.amazon.com/sn/embed/share/accounts/160885289976/dashboards/953a2fba-f0fd-4d2f-bac5-218d43e6e866/sheets/953a2fba-f0fd-4d2f-bac5-218d43e6e866_093dd589-38e9-48c3-9c05-1cd48dc3c9f7/visuals/953a2fba-f0fd-4d2f-bac5-218d43e6e866_aafa39e4-d241-47a5-9966-9a4bcc685147?directory_alias=AmazonPark-PeakTimes"
+        // Fetch embed URL from our API
+        const response = await fetch(`${API_ENDPOINT}?type=${dashboardType}`);
+        const data = await response.json();
+
+        if (!data.embedUrl) {
+            throw new Error('No embed URL received');
+        }
+
+        // Configure dashboard options
+        const options = {
+            url: data.embedUrl,
+            container: containerDiv,
+            height: "1000px",
+            width: "100%",
+            scrolling: "no",
+            printEnabled: false,
+            loadingHeight: "1000px"
         };
-        const container = document.getElementById('quicksight-dashboard');
-        container.innerHTML = `
-            <iframe
-                width="1200px"
-                height="800px"
-                src="${dashboardUrls[type]}"
-                frameborder="0"
-                style="display: block; margin: 0 auto;"
-                allowfullscreen>
-            </iframe>
-        `;
+
+        // Embed the dashboard
+        const dashboard = QuickSightEmbedding.embedDashboard(options);
+
+        dashboard.on('error', function(error) {
+            console.error('Error loading dashboard:', error);
+            containerDiv.innerHTML = 'Error loading dashboard. Please try again.';
+        });
+
+        dashboard.on('load', function() {
+            console.log('Dashboard loaded successfully');
+        });
+
     } catch (error) {
-        console.error('Error embedding dashboard:', error);
+        console.error('Failed to load dashboard:', error);
+        containerDiv.innerHTML = 'Error loading dashboard. Please refresh the page.';
     }
 }
 
-window.embedQuickSightDashboard = embedQuickSightDashboard;
+document.addEventListener('DOMContentLoaded', function() {
+    const containerDiv = document.getElementById('embedded-dashboard');
+    const dailyBtn = document.getElementById('dailyDashboard');
+    const weeklyBtn = document.getElementById('weeklyDashboard');
+    const dateSpan = document.getElementById('currentDate');
+
+    // Set current date
+    if (dateSpan) {
+        dateSpan.textContent = getCurrentDate();
+    }
+
+    // Event listeners for buttons
+    if (dailyBtn) {
+        dailyBtn.addEventListener('click', function() {
+            embedDashboard(containerDiv, 'daily');
+            dailyBtn.classList.add('active');
+            weeklyBtn.classList.remove('active');
+        });
+    }
+
+    if (weeklyBtn) {
+        weeklyBtn.addEventListener('click', function() {
+            embedDashboard(containerDiv, 'weekly');
+            weeklyBtn.classList.add('active');
+            dailyBtn.classList.remove('active');
+        });
+    }
+
+    // Load daily dashboard by default
+    embedDashboard(containerDiv, 'daily');
+    if (dailyBtn) {
+        dailyBtn.classList.add('active');
+    }
+});

@@ -9,6 +9,8 @@
     <!-- Chart.js -->
      <!-- Add this before your other scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- In the head section, after Chart.js -->
+    <script src="https://unpkg.com/amazon-quicksight-embedding-sdk@1.20.0/dist/quicksight-embedding-js-sdk.min.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="css/styles.css">
     <style>
@@ -199,16 +201,17 @@
         <!-- Analysis Page -->
         <div id="analysisPage" style="display: none;">
             <!-- Historical Analysis Card -->
+            <!-- Historical Analysis Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Historical Analysis</h5>
                     <div id="chartError" class="alert alert-danger" style="display:none;"></div>
                     <div class="btn-group mb-3">
-                        <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('daily')">Daily</button>
-                        <button class="btn btn-outline-primary" onclick="embedQuickSightDashboard('weekly')">Weekly</button>
+                        <button class="btn btn-outline-primary" id="dailyDashboard">Daily</button>
+                        <button class="btn btn-outline-primary" id="weeklyDashboard">Weekly</button>
                     </div>
-                    <div id="peakInfo" class="mb-2"></div>
-                    <div id="quicksight-dashboard" style="height: 100vh; width: 100%; padding: 20px;"></div>
+                    <div id="currentDate" class="mb-2"></div>
+                    <div id="embedded-dashboard" style="height: 800px; width: 100%;"></div>
                 </div>
             </div>
 
@@ -244,6 +247,8 @@
             crossorigin="anonymous"></script>
     
     <!-- Main Application JavaScript -->
+     <!-- Before the module script -->
+    <script src="js/quicksight.js"></script>
     <script type="module" src="js/index.js"></script>
 </body>
 </html>
