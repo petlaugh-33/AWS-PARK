@@ -4,7 +4,7 @@ import { initializeReservationSystem, cancelReservation, loadUserReservations } 
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 // Add this with your other imports
-import { embedQuickSightDashboard } from './quicksight.js';
+import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
@@ -53,15 +53,34 @@ function initializeWebSocketWithAuth() {
     }
 }
 
-// Add event listeners for dashboard buttons
+
 function setupDashboardButtons() {
+    const containerDiv = document.getElementById('embedded-dashboard');
     const dailyBtn = document.getElementById('dailyDashboard');
     const weeklyBtn = document.getElementById('weeklyDashboard');
-    const dashboardContainer = document.getElementById('embedded-dashboard');
+    const dateSpan = document.getElementById('currentDate');
 
-    if (dailyBtn && weeklyBtn && dashboardContainer) {
-        dailyBtn.addEventListener('click', () => embedQuickSightDashboard(dashboardContainer, 'daily'));
-        weeklyBtn.addEventListener('click', () => embedQuickSightDashboard(dashboardContainer, 'weekly'));
+    // Set current date
+    if (dateSpan) {
+        dateSpan.textContent = getCurrentDate();
+    }
+
+    if (dailyBtn && weeklyBtn && containerDiv) {
+        dailyBtn.addEventListener('click', function() {
+            embedQuickSightDashboard(containerDiv, 'daily');
+            dailyBtn.classList.add('active');
+            weeklyBtn.classList.remove('active');
+        });
+
+        weeklyBtn.addEventListener('click', function() {
+            embedQuickSightDashboard(containerDiv, 'weekly');
+            weeklyBtn.classList.add('active');
+            dailyBtn.classList.remove('active');
+        });
+
+        // Load daily dashboard by default
+        embedQuickSightDashboard(containerDiv, 'daily');
+        dailyBtn.classList.add('active');
     }
 }
 
