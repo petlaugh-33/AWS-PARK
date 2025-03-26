@@ -3,15 +3,13 @@ import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
+// Add this with your other imports
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
-
-
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
 window.loadHistoricalData = loadHistoricalData;
 window.cancelReservation = cancelReservation;
-
 
 // Add authentication check
 function checkAuthentication() {
@@ -117,17 +115,11 @@ function initializeApp() {
     // Set up tab navigation if it exists
     setupTabNavigation();
 
-    // Setup dashboard buttons
+    // Add this line
     setupDashboardButtons();
 
     console.log('Application initialization complete.');
 }
-
-// Configure Amplify and initialize app when the document is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
-    configureAmplify();
-    initializeApp();
-});
 
 // Set up tab navigation
 function setupTabNavigation() {
