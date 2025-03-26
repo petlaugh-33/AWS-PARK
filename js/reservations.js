@@ -2,7 +2,54 @@ import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL, CONFIRMATION_E
 import { showSuccessMessage, showErrorMessage } from './ui.js';
 import { saveToLocalStorage, loadFromLocalStorage, getAuthTokens, isAuthenticated, getCurrentUserInfo } from './storage.js';
 import { getCurrentUser } from './auth.js';
+import { API } from 'aws-amplify';
 
+export async function loadUserReservations() {
+    try {
+        const response = await API.get('api', '/reservations');
+        console.log('Reservations loaded:', response);
+        
+        if (Array.isArray(response)) {
+            reservationsCache.clear();
+            response.forEach(reservation => {
+                reservationsCache.set(reservation.reservationId, reservation);
+            });
+            updateReservationsTable(response);
+        }
+        
+        return response;
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+        showErrorMessage('Failed to load reservations');
+        return [];
+    }
+}
+
+export async function createReservation(reservationData) {
+    try {
+        const response = await API.post('api', '/reservations', {
+            body: reservationData
+        });
+        console.log('Reservation created:', response);
+        return response;
+    } catch (error) {
+        console.error('Error creating reservation:', error);
+        showErrorMessage('Failed to create reservation');
+        throw error;
+    }
+}
+
+export async function cancelReservation(reservationId) {
+    try {
+        const response = await API.del('api', `/reservations/${reservationId}`);
+        console.log('Reservation cancelled:', response);
+        return response;
+    } catch (error) {
+        console.error('Error cancelling reservation:', error);
+        showErrorMessage('Failed to cancel reservation');
+        throw error;
+    }
+}
 
 async function getAuthToken() {
     try {
