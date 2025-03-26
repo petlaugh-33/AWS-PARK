@@ -94,13 +94,15 @@ export function monitorConnection() {
 }
 
 export function manualReconnect() {
-    console.log('Manual reconnection requested');
+  console.log('Manual reconnection requested');
     reconnectAttempts = 0;
     if (socket) {
         socket.close();
     }
     connect();
 }
+
+window.manualReconnect = manualReconnect;
 
 // Get current socket state
 export function getConnectionState() {
