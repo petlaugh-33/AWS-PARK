@@ -1,4 +1,3 @@
-
 const awsconfig = {
     "aws_project_region": "us-east-1",
     "aws_cognito_region": "us-east-1",
@@ -14,7 +13,13 @@ const awsconfig = {
     ]
 };
 
-// Use AWS.Amplify instead of just Amplify
-AWS.Amplify.configure(awsconfig);
+export function configureAmplify() {
+    if (typeof AWS !== 'undefined' && AWS.Amplify) {
+        AWS.Amplify.configure(awsconfig);
+        console.log('Amplify configured successfully');
+    } else {
+        console.error('AWS Amplify is not loaded');
+    }
+}
 
 export default awsconfig;
