@@ -15,6 +15,7 @@ export async function testAPIConnection() {
     }
 }
 
+
 export async function loadUserReservations() {
     try {
         const response = await API.get('api', '/reservations');
@@ -32,6 +33,13 @@ export async function loadUserReservations() {
     } catch (error) {
         console.error('Error loading reservations:', error);
         showErrorMessage('Failed to load reservations');
+        
+        // Try to load from cache
+        const cachedReservations = Array.from(reservationsCache.values());
+        if (cachedReservations.length > 0) {
+            updateReservationsTable(cachedReservations);
+            return cachedReservations;
+        }
         return [];
     }
 }
@@ -52,23 +60,43 @@ export async function createReservation(reservationData) {
 
 export async function cancelReservation(reservationId) {
     try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            redirectToLogin();
+            return false;
+        }
+
+        // Show loading state
+        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
+        }
+
         const response = await API.del('api', `/reservations/${reservationId}`);
         console.log('Reservation cancelled:', response);
-        return response;
+
+        // Reset button state
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = 'Cancel';
+        }
+
+        // Remove from cache
+        reservationsCache.delete(reservationId);
+
+        // Show success message
+        showSuccessMessage('Reservation cancelled successfully!');
+
+        // Reload reservations
+        await loadUserReservations();
+
+        return true;
     } catch (error) {
         console.error('Error cancelling reservation:', error);
-        showErrorMessage('Failed to cancel reservation');
-        throw error;
-    }
-}
-
-async function getAuthToken() {
-    try {
-        const session = await Auth.currentSession();
-        return session.getIdToken().getJwtToken();
-    } catch (error) {
-        console.error('Error getting auth token:', error);
-        throw error;
+        showErrorMessage(`Failed to cancel reservation: ${error.message}`);
+        return false;
     }
 }
 
@@ -90,16 +118,6 @@ async function makeAuthenticatedRequest() {
         console.error('API request failed:', error);
         throw error;
     }
-}
-
-// Add this after your imports
-function getAuthHeaders() {
-    const token = localStorage.getItem('accessToken');
-    return {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`
-    };
 }
 
 // Cache for reservations
@@ -174,32 +192,11 @@ export async function handleReservationSubmit(event) {
         
         console.log('Submitting reservation with data:', requestData);
         
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
-            },
-            body: JSON.stringify(requestData),
-            credentials: 'include'  // Add this line
+        const data = await API.post('api', '/reservations', {
+            body: requestData
         });
         
-        if (response.status === 401) {
-            redirectToLogin();
-            return;
-        }
-                
-        console.log('Response status:', response.status);
-        const responseText = await response.text();
-        console.log('Raw response:', responseText);
-
-        if (!response.ok) {
-            throw new Error(responseText || 'Failed to create reservation');
-        }
-
-        const data = JSON.parse(responseText);
-        console.log('Parsed response data:', data);
+        console.log('Reservation created:', data);
 
         // Update cache
         if (data.reservationId) {
@@ -208,30 +205,20 @@ export async function handleReservationSubmit(event) {
                 userId: user.sub,
                 email: user.email
             });
-        }
-        // Add confirmation email here
-        if (data.reservationId) {
+
+            // Send confirmation email
             try {
-                const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('idToken')}`
-                    },
-                    body: JSON.stringify({
+                await API.post('api', '/confirmation', {
+                    body: {
                         reservationId: data.reservationId,
                         userEmail: user.email,
                         startTime: startTime,
                         endTime: endTime
-                    })
+                    }
                 });
-                
-                if (confirmResponse.ok) {
-                    console.log('Confirmation email sent successfully');
-                }
+                console.log('Confirmation email sent successfully');
             } catch (emailError) {
                 console.error('Error sending confirmation email:', emailError);
-                // Don't block reservation success if email fails
             }
         }
 
@@ -248,82 +235,18 @@ export async function handleReservationSubmit(event) {
     }
 }
 
-export async function cancelReservation(reservationId) {
-    try {
-        const user = getCurrentUser();
-        if (!user) {
-            console.log('No authenticated user');
-            redirectToLogin();
-            return false;
-        }
+        // Clear form and show success
+        document.getElementById('reservationForm').reset();
+        showSuccessMessage('Reservation created successfully!');
 
-        console.log('Attempting to cancel reservation:', reservationId);
-        
-        // Show loading state
-        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
-        if (button) {
-            button.disabled = true;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
-        }
-
-        const cancelUrl = `${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`;
-        console.log('Cancel URL:', cancelUrl);
-
-        const response = await fetch(cancelUrl, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
-            },
-            credentials: 'include'  // Add this line
-        });
-
-        // Reset button state
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = 'Cancel';
-        }
-
-        if (response.status === 401) {
-            redirectToLogin();
-            return false;
-        }
-
-        // Parse response
-        let data;
-        try {
-            const text = await response.text();
-            data = text ? JSON.parse(text) : {};
-        } catch (e) {
-            console.error('Error parsing response:', e);
-            throw new Error('Invalid response from server');
-        }
-
-        if (!response.ok) {
-            throw new Error(data.error || `Failed to cancel reservation (Status: ${response.status})`);
-        }
-
-        // Remove from cache
-        if (reservationsCache) {
-            reservationsCache.delete(reservationId);
-        }
-
-        // Show success message
-        showSuccessMessage('Reservation cancelled successfully!');
-
-        // Reload reservations
+        // Reload reservations immediately
         await loadUserReservations();
-
-        return true;
+        
     } catch (error) {
-        console.error('Error cancelling reservation:', error);
-        showErrorMessage(`Failed to cancel reservation: ${error.message}`);
-        return false;
+        console.error('Reservation error:', error);
+        showErrorMessage(error.message || 'Failed to create reservation');
     }
 }
-
-    
 
 // Validate datetime inputs
 function validateDateTime() {
@@ -353,112 +276,6 @@ function validateDateTime() {
     }
 
     return true;
-}
-
-
-
-export async function loadUserReservations() {
-    try {
-        const user = getCurrentUser();
-        if (!user) {
-            console.log('No authenticated user');
-            return [];
-        }
-
-        const idToken = localStorage.getItem("idToken");
-        if (!idToken) {
-            console.error('No idToken found');
-            return [];
-        }
-
-        console.log('Making request with token:', idToken.substring(0, 20) + '...');
-
-        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`
-            }
-        });
-
-        console.log('Response status:', response.status);
-        
-        if (response.status === 401) {
-            console.error('Unauthorized - token might be expired');
-            // Redirect to login or handle token refresh
-            return [];
-        }
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Raw data received:', data);
-        
-        let reservations = Array.isArray(data) ? data : [];
-        
-        // Filter reservations for the current user
-        reservations = reservations.filter(reservation => 
-            reservation.userId === user.sub || reservation.userEmail === user.email
-        );
-        
-        console.log('Filtered reservations:', reservations);
-
-        // Validate each reservation
-        reservations = reservations.map(reservation => {
-            // Ensure all required fields are present
-            if (!reservation.reservationId || !reservation.startTime || !reservation.endTime) {
-                console.warn('Invalid reservation data:', reservation);
-                return null;
-            }
-
-            // Convert dates to proper format
-            try {
-                reservation.startTime = new Date(reservation.startTime).toISOString();
-                reservation.endTime = new Date(reservation.endTime).toISOString();
-            } catch (e) {
-                console.warn('Invalid date in reservation:', e);
-                return null;
-            }
-
-            return reservation;
-        }).filter(Boolean); // Remove any null entries
-
-        // Update cache
-        reservationsCache.clear();
-        reservations.forEach(reservation => {
-            reservationsCache.set(reservation.reservationId, reservation);
-        });
-        
-        // Update UI
-        updateReservationsTable(reservations);
-        
-        // Save to local storage
-        saveToLocalStorage('userReservations', reservations);
-        
-        return reservations;
-
-    } catch (error) {
-        console.error('Error loading reservations:', error);
-        showErrorMessage('Failed to load reservations. Please try again later.');
-        
-        // Try to load from cache
-        const cachedReservations = Array.from(reservationsCache.values());
-        if (cachedReservations.length > 0) {
-            console.log('Using cached reservations:', cachedReservations);
-            updateReservationsTable(cachedReservations);
-            return cachedReservations;
-        }
-        
-        // If everything fails, return empty array
-        return [];
-    } finally {
-        // Any cleanup code if needed
-    }
 }
 
 // Add this helper function to validate dates
