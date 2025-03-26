@@ -7,6 +7,7 @@ import { getCurrentUser, redirectToLogin } from './auth.js';
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
 import { Amplify } from 'aws-amplify';
 import awsconfig from './aws-exports';
+const { Amplify } = aws_amplify;
 
 Amplify.configure(awsconfig);
 
