@@ -1,4 +1,4 @@
-const awsmobile = {
+const awsconfig = {
     "aws_project_region": "us-east-1",
     "aws_cognito_region": "us-east-1",
     "aws_user_pools_id": "us-east-1_YK7Q60V8o",
@@ -13,4 +13,7 @@ const awsmobile = {
     ]
 };
 
-export default awsmobile;
+// Use the global AWS Amplify object
+window.AWS_AMPLIFY_CONFIG = awsconfig;
+
+export default awsconfig;
