@@ -3,18 +3,17 @@ import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
-// Add this with your other imports
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
-import { Amplify } from 'aws-amplify';
-import awsconfig from './aws-exports';
-const { Amplify } = aws_amplify;
+import awsconfig from './aws-exports.js';
 
+const { Amplify } = aws_amplify;  // Use global aws_amplify object
 Amplify.configure(awsconfig);
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
 window.loadHistoricalData = loadHistoricalData;
 window.cancelReservation = cancelReservation;
+
 
 // Add authentication check
 function checkAuthentication() {
