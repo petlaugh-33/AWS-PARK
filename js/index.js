@@ -5,6 +5,10 @@ import { connect, monitorConnection, manualReconnect, closeConnection } from './
 import { getCurrentUser, redirectToLogin } from './auth.js';
 // Add this with your other imports
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
+import { Amplify } from 'aws-amplify';
+import awsconfig from './aws-exports';
+
+Amplify.configure(awsconfig);
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
