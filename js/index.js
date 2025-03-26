@@ -1,10 +1,10 @@
+import { configureAmplify } from './amplify-config.js';
 import { initializeStorage, cleanupStorageData } from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
-import awsconfig from './aws-exports.js';
 
 const { Amplify } = aws_amplify;  // Use global aws_amplify object
 Amplify.configure(awsconfig);
@@ -119,11 +119,17 @@ function initializeApp() {
     // Set up tab navigation if it exists
     setupTabNavigation();
 
-    // Add this line
+    // Setup dashboard buttons
     setupDashboardButtons();
 
     console.log('Application initialization complete.');
 }
+
+// Configure Amplify and initialize app when the document is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+    configureAmplify();
+    initializeApp();
+});
 
 // Set up tab navigation
 function setupTabNavigation() {
