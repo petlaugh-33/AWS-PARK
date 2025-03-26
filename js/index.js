@@ -6,8 +6,6 @@ import { getCurrentUser, redirectToLogin } from './auth.js';
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
 import awsconfig from './aws-exports.js';
 
-const { Amplify } = aws_amplify;  // Use global aws_amplify object
-Amplify.configure(awsconfig);
 
 // Make necessary functions available globally
 window.manualReconnect = manualReconnect;
