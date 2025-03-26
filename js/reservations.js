@@ -4,6 +4,17 @@ import { saveToLocalStorage, loadFromLocalStorage, getAuthTokens, isAuthenticate
 import { getCurrentUser } from './auth.js';
 import { API } from 'aws-amplify';
 
+export async function testAPIConnection() {
+    try {
+        const response = await API.get('api', '/reservations');
+        console.log('API test successful:', response);
+        return true;
+    } catch (error) {
+        console.error('API test failed:', error);
+        return false;
+    }
+}
+
 export async function loadUserReservations() {
     try {
         const response = await API.get('api', '/reservations');
