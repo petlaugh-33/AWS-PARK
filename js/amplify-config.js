@@ -14,6 +14,7 @@ const awsconfig = {
     ]
 };
 
-Amplify.configure(awsconfig);
+// Use AWS.Amplify instead of just Amplify
+AWS.Amplify.configure(awsconfig);
 
 export default awsconfig;
