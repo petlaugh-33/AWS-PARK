@@ -1,4 +1,3 @@
-const { Amplify } = aws_amplify;
 
 const awsconfig = {
     "aws_project_region": "us-east-1",
