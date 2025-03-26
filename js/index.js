@@ -1,10 +1,10 @@
-import { configureAmplify } from './amplify-config.js';
 import { initializeStorage, cleanupStorageData } from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
+import awsconfig from './aws-exports.js';
 
 const { Amplify } = aws_amplify;  // Use global aws_amplify object
 Amplify.configure(awsconfig);
