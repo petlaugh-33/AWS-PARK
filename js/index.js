@@ -4,7 +4,7 @@ import { initializeReservationSystem, cancelReservation, loadUserReservations } 
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
-import awsconfig from './aws-exports.js';
+
 
 
 // Make necessary functions available globally
