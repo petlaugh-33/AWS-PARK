@@ -12,9 +12,13 @@ const API_ENDPOINT = 'https://g11syiymjl.execute-api.us-east-1.amazonaws.com/pro
 
 export async function embedQuickSightDashboard(containerDiv, dashboardType) {
     try {
-        // Fetch embed URL from our API
+        console.log('Fetching dashboard URL...');
         const response = await fetch(`${API_ENDPOINT}?type=${dashboardType}`);
-        const data = await response.json();
+        const responseData = await response.json();
+        
+        // Parse the nested JSON in the body
+        const data = JSON.parse(responseData.body);
+        console.log('Parsed dashboard data:', data);
 
         if (!data.embedUrl) {
             throw new Error('No embed URL received');
@@ -30,6 +34,8 @@ export async function embedQuickSightDashboard(containerDiv, dashboardType) {
             printEnabled: false,
             loadingHeight: "1000px"
         };
+
+        console.log('Embedding dashboard with options:', options);
 
         // Embed the dashboard
         const dashboard = QuickSightEmbedding.embedDashboard(options);
@@ -49,6 +55,5 @@ export async function embedQuickSightDashboard(containerDiv, dashboardType) {
     }
 }
 
-// Remove the DOMContentLoaded event listener since we're handling this in index.js
 export { getCurrentDate };
 
