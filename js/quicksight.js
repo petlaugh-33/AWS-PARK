@@ -12,48 +12,70 @@ const API_ENDPOINT = 'https://g11syiymjl.execute-api.us-east-1.amazonaws.com/pro
 
 export async function embedQuickSightDashboard(containerDiv, dashboardType) {
     try {
+        // Show loading state
+        containerDiv.innerHTML = `
+            <div class="text-center p-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading dashboard...</p>
+            </div>
+        `;
+
         console.log('Fetching dashboard URL...');
         const response = await fetch(`${API_ENDPOINT}?type=${dashboardType}`);
         const responseData = await response.json();
-        
-        // Parse the nested JSON in the body
         const data = JSON.parse(responseData.body);
-        console.log('Parsed dashboard data:', data);
 
         if (!data.embedUrl) {
             throw new Error('No embed URL received');
         }
 
-        // Configure dashboard options
+        // Clear loading state before embedding
+        containerDiv.innerHTML = '';
+
         const options = {
             url: data.embedUrl,
             container: containerDiv,
-            height: "1000px",
+            height: "800px",
             width: "100%",
             scrolling: "no",
             printEnabled: false,
-            loadingHeight: "1000px"
+            loadingHeight: "800px"
         };
 
-        console.log('Embedding dashboard with options:', options);
-
-        // Embed the dashboard
         const dashboard = QuickSightEmbedding.embedDashboard(options);
 
         dashboard.on('error', function(error) {
             console.error('Error loading dashboard:', error);
-            containerDiv.innerHTML = 'Error loading dashboard. Please try again.';
+            containerDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Error loading dashboard. Please try again.
+                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="location.reload()">Reload</button>
+                </div>
+            `;
         });
 
         dashboard.on('load', function() {
             console.log('Dashboard loaded successfully');
+            // Remove any leftover loading indicators
+            const loadingElements = containerDiv.getElementsByClassName('text-center p-4');
+            if (loadingElements.length > 0) {
+                loadingElements[0].remove();
+            }
         });
 
     } catch (error) {
         console.error('Failed to load dashboard:', error);
-        containerDiv.innerHTML = 'Error loading dashboard. Please refresh the page.';
+        containerDiv.innerHTML = `
+            <div class="alert alert-danger">
+                Error loading dashboard: ${error.message}
+                <button class="btn btn-sm btn-outline-danger ms-2" onclick="location.reload()">Reload</button>
+            </div>
+        `;
     }
 }
 
 export { getCurrentDate };
+
 
