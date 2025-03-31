@@ -49,23 +49,33 @@ export function connect() {
         socket.onmessage = (event) => {
     try {
         const data = JSON.parse(event.data);
-        console.log('Received data:', data);
+        console.log('WebSocket message received:', data);
         
         if (data.type === 'status_update') {
-            updateStatus(data.data);
-            addToHistory(data.data);
-        } 
+            console.log('Processing status update:', data.data);
+            // Verify data structure before updating UI
+            if (data.data && typeof data.data.availableSpaces !== 'undefined') {
+                updateStatus(data.data);
+                addToHistory(data.data);
+                console.log('Status update processed');
+            } else {
+                console.error('Invalid status update data:', data);
+            }
+        }
         else if (data.type === 'reservation_update') {
+            console.log('Processing reservation update:', data);
             // Reload reservations when there's any reservation change
             loadUserReservations();
             
             // Also update the status since parking availability might have changed
             if (data.action === 'create' || data.action === 'cancel') {
+                console.log('Updating parking status due to reservation change');
                 updateParkingStatus();
             }
         }
     } catch (error) {
         console.error('Error processing message:', error);
+        console.error('Raw message:', event.data);
     }
 };
         
