@@ -59,7 +59,10 @@ export function updateStatus(data) {
     console.log('Updating status with data:', data);
     const mainStatus = document.getElementById('mainStatus');
     mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-    
+
+    // Add this line to update reservation stats
+    updateReservationStats(data);
+
     document.getElementById('availableSpaces').textContent = data.availableSpaces;
     document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
     document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
@@ -78,6 +81,14 @@ export function updateStatus(data) {
 
     saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
     updateDataStorageTime();
+}
+
+// Add this function to your ui.js
+function updateReservationStats(status) {
+    if (status) {
+        document.getElementById('activeReservations').textContent = status.activeReservations || 0;
+        document.getElementById('upcomingReservations').textContent = status.upcomingReservations || 0;
+    }
 }
 
 // Update occupancy bar color based on rate
