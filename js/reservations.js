@@ -147,27 +147,34 @@ export async function handleReservationSubmit(event) {
         // Add confirmation email here
         if (data.reservationId) {
             try {
+                const token = localStorage.getItem('idToken');
+                console.log('Sending confirmation with token:', token ? 'Token present' : 'No token');
+                
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('idToken')}`
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         reservationId: data.reservationId,
                         userEmail: user.email,
                         startTime: startTime,
                         endTime: endTime
-                    }),
-                    credentials: 'include'  // Add this line
+                    })
                 });
                 
-                if (confirmResponse.ok) {
-                    console.log('Confirmation email sent successfully');
+                console.log('Confirmation response:', confirmResponse);
+                
+                if (!confirmResponse.ok) {
+                    const errorText = await confirmResponse.text();
+                    console.error('Confirmation error:', errorText);
                 }
+                
+                const confirmData = await confirmResponse.json();
+                console.log('Confirmation data:', confirmData);
             } catch (emailError) {
-                console.error('Error sending confirmation email:', emailError);
-                // Don't block reservation success if email fails
+                console.error('Detailed error:', emailError);
             }
         }
 
