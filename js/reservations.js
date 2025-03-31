@@ -50,9 +50,6 @@ let reservationsCache = new Map();
 // Initialize the reservation system
 export function initializeReservationSystem() {
     try {
-        const now = convertToEST(new Date());
-        const minDateTime = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
-        
         const startTimeInput = document.getElementById('startTime');
         const endTimeInput = document.getElementById('endTime');
         const reservationForm = document.getElementById('reservationForm');
@@ -60,10 +57,6 @@ export function initializeReservationSystem() {
         if (!startTimeInput || !endTimeInput || !reservationForm) {
             throw new Error('Required reservation elements not found');
         }
-
-        // Set minimum times
-        startTimeInput.min = minDateTime;
-        endTimeInput.min = minDateTime;
         
         // Add event listeners
         startTimeInput.addEventListener('change', handleStartTimeChange);
