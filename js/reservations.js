@@ -152,10 +152,10 @@ export async function handleReservationSubmit(event) {
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
-                    mode: 'no-cors',  // Add this line
+                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': token  // Changed this line - remove 'Bearer ' prefix
                     },
                     body: JSON.stringify({
                         reservationId: data.reservationId,
@@ -166,12 +166,8 @@ export async function handleReservationSubmit(event) {
                 });
                 
                 console.log('Confirmation attempt made');
-                // Don't try to read the response with no-cors mode
-                // Just assume it worked if we got here
             } catch (emailError) {
                 console.error('Email confirmation error:', emailError);
-                // Don't throw here - we want the reservation to be considered successful
-                // even if the email fails
             }
         }
 
