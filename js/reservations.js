@@ -337,8 +337,10 @@ export async function loadUserReservations() {
         let reservations = Array.isArray(data) ? data : [];
         
         // Filter reservations for the current user
+        // Filter reservations for the current user and remove cancelled ones
         reservations = reservations.filter(reservation => 
-            reservation.userId === user.sub || reservation.userEmail === user.email
+            (reservation.userId === user.sub || reservation.userEmail === user.email) &&
+            reservation.status !== 'CANCELLED'
         );
         
         console.log('Filtered reservations:', reservations);
