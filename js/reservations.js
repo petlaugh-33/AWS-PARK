@@ -158,7 +158,8 @@ export async function handleReservationSubmit(event) {
                         userEmail: user.email,
                         startTime: startTime,
                         endTime: endTime
-                    })
+                    }),
+                    credentials: 'include'  // Add this line
                 });
                 
                 if (confirmResponse.ok) {
