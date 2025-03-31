@@ -148,14 +148,14 @@ export async function handleReservationSubmit(event) {
         if (data.reservationId) {
             try {
                 const token = localStorage.getItem('idToken');
-                console.log('Sending confirmation with token:', token ? 'Token present' : 'No token');
+                console.log('Actual token value:', token); // Add this line to see the full token
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': token  // Changed this line - remove 'Bearer ' prefix
+                        'Authorization': `Bearer ${token}` // Changed this line - remove 'Bearer ' prefix
                     },
                     body: JSON.stringify({
                         reservationId: data.reservationId,
