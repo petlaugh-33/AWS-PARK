@@ -148,14 +148,13 @@ export async function handleReservationSubmit(event) {
         if (data.reservationId) {
             try {
                 const token = localStorage.getItem('idToken');
-                console.log('Actual token value:', token); // Add this line to see the full token
+                console.log('Actual token value:', token);
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // Changed this line - remove 'Bearer ' prefix
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         reservationId: data.reservationId,
@@ -165,7 +164,15 @@ export async function handleReservationSubmit(event) {
                     })
                 });
                 
-                console.log('Confirmation attempt made');
+                console.log('Response status:', confirmResponse.status);
+                console.log('Response headers:', [...confirmResponse.headers]);
+
+                if (!confirmResponse.ok) {
+                    const errorText = await confirmResponse.text();
+                    console.error('Error response:', errorText);
+                } else {
+                    console.log('Confirmation successful');
+                }
             } catch (emailError) {
                 console.error('Email confirmation error:', emailError);
             }
