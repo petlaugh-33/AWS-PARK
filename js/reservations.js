@@ -152,13 +152,12 @@ export async function handleReservationSubmit(event) {
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'accept': 'application/json',
+                        'authorization': `Bearer ${token}`,  // Match the case
+                        'origin': 'https://main.d1lgse8ryp3x19.amplifyapp.com'
                     },
-                    credentials: 'include',
                     body: JSON.stringify({
                         reservationId: data.reservationId,
                         userEmail: user.email,
