@@ -152,10 +152,9 @@ export async function handleReservationSubmit(event) {
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`  // Add back 'Bearer ' prefix
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
                         reservationId: data.reservationId,
