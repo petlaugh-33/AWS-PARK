@@ -153,6 +153,7 @@ export async function handleReservationSubmit(event) {
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
+                    mode: 'cors',  // Add this line explicitly
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -164,16 +165,15 @@ export async function handleReservationSubmit(event) {
                         endTime: endTime
                     })
                 });
-                
-                console.log('Response status:', confirmResponse.status);
-                console.log('Response headers:', [...confirmResponse.headers]);
 
+                // Add error handling
                 if (!confirmResponse.ok) {
-                    const errorText = await confirmResponse.text();
-                    console.error('Error response:', errorText);
-                } else {
-                    console.log('Confirmation successful');
+                    throw new Error(`HTTP error! status: ${confirmResponse.status}`);
                 }
+                
+                const responseData = await confirmResponse.json();
+                console.log('Response data:', responseData);
+                
             } catch (emailError) {
                 console.error('Email confirmation error:', emailError);
             }
