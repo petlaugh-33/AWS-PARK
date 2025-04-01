@@ -154,10 +154,8 @@ export async function handleReservationSubmit(event) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                        'Access-Control-Allow-Origin': 'https://main.d1lgse8ryp3x19.amplifyapp.com'
+                        'Authorization': `Bearer ${token}`
                     },
-                    credentials: 'include',
                     body: JSON.stringify({
                         reservationId: data.reservationId,
                         userEmail: user.email,
