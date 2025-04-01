@@ -144,7 +144,6 @@ export async function handleReservationSubmit(event) {
                 email: user.email
             });
         }
-        // Add confirmation email here
         if (data.reservationId) {
             try {
                 const token = localStorage.getItem('idToken');
@@ -152,10 +151,11 @@ export async function handleReservationSubmit(event) {
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
+                    mode: 'no-cors',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'content-type': 'application/json',
                         'accept': 'application/json',
-                        'authorization': `Bearer ${token}`,  // Match the case
+                        'authorization': `Bearer ${token}`,
                         'origin': 'https://main.d1lgse8ryp3x19.amplifyapp.com'
                     },
                     body: JSON.stringify({
@@ -172,6 +172,7 @@ export async function handleReservationSubmit(event) {
                 console.error('Email confirmation error:', emailError);
             }
         }
+        
         // Clear form and show success
         document.getElementById('reservationForm').reset();
         showSuccessMessage('Reservation created successfully! Check your email for confirmation.');
