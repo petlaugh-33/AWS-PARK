@@ -154,8 +154,10 @@ export async function handleReservationSubmit(event) {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         reservationId: data.reservationId,
                         userEmail: user.email,
