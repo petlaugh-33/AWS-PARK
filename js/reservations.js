@@ -155,7 +155,7 @@ export async function handleReservationSubmit(event) {
                     mode: 'no-cors',  // Add this line
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': token
                     },
                     body: JSON.stringify({
                         reservationId: data.reservationId,
