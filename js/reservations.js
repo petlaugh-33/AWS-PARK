@@ -148,8 +148,26 @@ export async function handleReservationSubmit(event) {
         if (data.reservationId) {
             try {
                 const token = localStorage.getItem('idToken');
-                console.log('Token from localStorage:', token);
+                console.log('Token exists:', !!token);
+                console.log('Token first 50 chars:', token?.substring(0, 50));
                 
+                // Log the exact request we're about to make
+                const requestDetails = {
+                    url: CONFIRMATION_ENDPOINT,
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: {
+                        reservationId: data.reservationId,
+                        userEmail: user.email,
+                        startTime: startTime,
+                        endTime: endTime
+                    }
+                };
+                console.log('Request details:', requestDetails);
+        
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
                     mode: 'cors',
@@ -157,17 +175,13 @@ export async function handleReservationSubmit(event) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({  // Remove the 'body' wrapper
+                    body: JSON.stringify({
                         reservationId: data.reservationId,
                         userEmail: user.email,
                         startTime: startTime,
                         endTime: endTime
                     })
                 });
-        
-                console.log('Response status:', confirmResponse.status);
-                const responseData = await confirmResponse.json();
-                console.log('Response data:', responseData);
                 
             } catch (emailError) {
                 console.error('Email confirmation error:', emailError);
