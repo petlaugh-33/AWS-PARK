@@ -149,27 +149,10 @@ export async function handleReservationSubmit(event) {
             try {
                 const token = localStorage.getItem('idToken');
                 console.log('Token exists:', !!token);
-                console.log('Token first 50 chars:', token?.substring(0, 50));
                 
-                // Log the exact request we're about to make
-                const requestDetails = {
-                    url: CONFIRMATION_ENDPOINT,
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: {
-                        reservationId: data.reservationId,
-                        userEmail: user.email,
-                        startTime: startTime,
-                        endTime: endTime
-                    }
-                };
-                console.log('Request details:', requestDetails);
-        
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
+                    mode: 'no-cors',  // Add this line
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
@@ -182,11 +165,12 @@ export async function handleReservationSubmit(event) {
                     })
                 });
                 
+                console.log('Request sent');
+                
             } catch (emailError) {
                 console.error('Email confirmation error:', emailError);
             }
         }
-
         // Clear form and show success
         document.getElementById('reservationForm').reset();
         showSuccessMessage('Reservation created successfully! Check your email for confirmation.');
