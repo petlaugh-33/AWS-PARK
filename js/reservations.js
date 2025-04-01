@@ -148,7 +148,8 @@ export async function handleReservationSubmit(event) {
         if (data.reservationId) {
             try {
                 const token = localStorage.getItem('idToken');
-                console.log('Actual token value:', token);
+                console.log('Token from localStorage:', token);
+                console.log('Full Authorization header:', `Bearer ${token}`);
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
