@@ -149,28 +149,23 @@ export async function handleReservationSubmit(event) {
             try {
                 const token = localStorage.getItem('idToken');
                 console.log('Token from localStorage:', token);
-                console.log('Full Authorization header:', `Bearer ${token}`);
                 
                 const confirmResponse = await fetch(CONFIRMATION_ENDPOINT, {
                     method: 'POST',
-                    mode: 'cors',  // Add this line explicitly
+                    mode: 'cors',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({
+                    body: JSON.stringify({  // Remove the 'body' wrapper
                         reservationId: data.reservationId,
                         userEmail: user.email,
                         startTime: startTime,
                         endTime: endTime
                     })
                 });
-
-                // Add error handling
-                if (!confirmResponse.ok) {
-                    throw new Error(`HTTP error! status: ${confirmResponse.status}`);
-                }
-                
+        
+                console.log('Response status:', confirmResponse.status);
                 const responseData = await confirmResponse.json();
                 console.log('Response data:', responseData);
                 
