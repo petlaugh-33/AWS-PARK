@@ -756,7 +756,7 @@
 
 import { initializeStorage, cleanupStorageData } from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
-import { initializeReservationSystem, cancelReservation, loadUserReservations } from './reservations.js';
+import { initializeReservationSystem, cancelReservation, loadUserReservations, handleReservationSubmit } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
@@ -764,6 +764,8 @@ import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
 window.manualReconnect = manualReconnect;
 window.loadHistoricalData = loadHistoricalData;
 window.cancelReservation = cancelReservation;
+window.handleReservationSubmit = handleReservationSubmit;
+
 
 function checkAuthentication() {
     console.log('Checking authentication...');
@@ -859,6 +861,50 @@ function initializeApp() {
 
     console.log('Application initialization complete.');
 }
+
+// function setupTabNavigation() {
+//     const homeTab = document.getElementById('homeTab');
+//     const analysisTab = document.getElementById('analysisTab');
+//     const reservationsTab = document.getElementById('ReservationsTab');
+
+//     if (homeTab && analysisTab && reservationsTab) {
+//         homeTab.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             switchTab('homeTab');
+//         });
+
+//         analysisTab.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             switchTab('analysisTab');
+//         });
+
+//         reservationsTab.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             switchTab('ReservationsTab');
+//         });
+
+//         switchTab('homeTab');
+//     }
+// }
+
+// function switchTab(tabId) {
+//     document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
+//     document.getElementById('analysisPage').style.display = tabId === 'analysisTab' ? 'block' : 'none';
+//     document.getElementById('ReservationsPage').style.display = tabId === 'ReservationsTab' ? 'block' : 'none';
+    
+//     document.querySelectorAll('.nav-link').forEach(link => {
+//         link.classList.remove('active');
+//     });
+//     document.getElementById(tabId).classList.add('active');
+
+//     if (tabId === 'analysisTab') {
+//         const dashboardContainer = document.getElementById('embedded-dashboard');
+//         embedQuickSightDashboard(dashboardContainer, 'daily');
+//     } else if (tabId === 'ReservationsTab') {
+//         loadUserReservations();
+//     }
+// }
+
 
 function setupTabNavigation() {
     const homeTab = document.getElementById('homeTab');

@@ -200,7 +200,7 @@
                     </div>
                 </div>
             </div>
-            <!-- ADD HERE - Reservation Stats Card -->
+            <!-- Reservation Stats Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Reservation Statistics</h5>
@@ -277,55 +277,97 @@
                 </div>
             </div>
         </div>
-    </div>
-    <!-- My Reservations Page -->
-    <div id="ReservationsPage" style="display: none;">
-        <!-- Upcoming Reservations -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Upcoming Reservations</h5>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Spot</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="upcomingReservationsTable">
-                            <!-- Will be populated dynamically -->
-                        </tbody>
-                    </table>
+
+        <!-- My Reservations Page -->
+        <div id="ReservationsPage" style="display: none;">
+            <!-- Reservation Form Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Make a Reservation</h5>
+                    <div id="myReservationsError" class="alert alert-danger" style="display:none;"></div>
+                    <form id="myReservationsForm" class="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Start Time (EST)</label>
+                                <input type="datetime-local" 
+                                       class="form-control" 
+                                       id="startTimeReservations" 
+                                       required>
+                                <small class="text-muted">Available hours: 7:00 AM - 11:00 PM EST</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Time (EST)</label>
+                                <input type="datetime-local" class="form-control" id="endTimeReservations" required>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">Make Reservation</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Upcoming Reservations -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming Reservations</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Spot</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="upcomingReservationsTable">
+                                <!-- Will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Past Reservations -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Past Reservations</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Spot</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pastReservationsTable">
+                                <!-- Will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reservation Statistics -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Reservation Statistics</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>Active Reservations: <span id="activeReservationsCount" class="badge bg-primary">0</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>Upcoming Reservations: <span id="upcomingReservationsCount" class="badge bg-info">0</span></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Past Reservations -->
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Past Reservations</h5>
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Spot</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pastReservationsTable">
-                            <!-- Will be populated dynamically -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
     </div>
-
 
     <!-- Footer -->
     <footer class="footer">
@@ -347,4 +389,3 @@
     <script type="module" src="js/index.js"></script>
 </body>
 </html>
-    
