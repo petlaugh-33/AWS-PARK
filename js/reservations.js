@@ -4,26 +4,23 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 
 let reservationsCache = new Map();
+let lastAssignedSpot = 0;
 
 export function initializeReservationSystem() {
     try {
-        // Initialize both forms
-        const startTimeInput = document.getElementById('startTime');
-        const endTimeInput = document.getElementById('endTime');
-        const reservationForm = document.getElementById('reservationForm');
-        const startTimeReservations = document.getElementById('startTimeReservations');
-        const endTimeReservations = document.getElementById('endTimeReservations');
-        const myReservationsForm = document.getElementById('myReservationsForm');
-
-        if (startTimeInput && endTimeInput && reservationForm) {
-            startTimeInput.addEventListener('change', handleStartTimeChange);
-            reservationForm.addEventListener('submit', handleReservationSubmit);
-        }
-
-        if (startTimeReservations && endTimeReservations && myReservationsForm) {
-            startTimeReservations.addEventListener('change', handleStartTimeChange);
-            myReservationsForm.addEventListener('submit', handleReservationSubmit);
-        }
+        const reservationForms = ['reservationForm', 'myReservationsForm'];
+        reservationForms.forEach(formId => {
+            const form = document.getElementById(formId);
+            if (form) {
+                const startTimeInput = form.querySelector('[id^="startTime"]');
+                const endTimeInput = form.querySelector('[id^="endTime"]');
+                
+                if (startTimeInput && endTimeInput) {
+                    startTimeInput.addEventListener('change', handleStartTimeChange);
+                    form.addEventListener('submit', handleReservationSubmit);
+                }
+            }
+        });
 
         loadUserReservations();
         startReservationRefresh();
@@ -88,11 +85,15 @@ export async function handleReservationSubmit(event) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
+        // Get next available spot
+        const nextSpot = await getNextAvailableSpot();
+
         const requestData = {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             userId: user.sub,
-            userEmail: user.email
+            userEmail: user.email,
+            spotNumber: nextSpot
         };
         
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
@@ -112,8 +113,7 @@ export async function handleReservationSubmit(event) {
         }
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Failed to create reservation');
+            throw new Error('Failed to create reservation');
         }
 
         const data = await response.json();
@@ -122,8 +122,11 @@ export async function handleReservationSubmit(event) {
             reservationsCache.set(data.reservationId, {
                 ...data,
                 userId: user.sub,
-                email: user.email
+                email: user.email,
+                spotNumber: nextSpot
             });
+
+            lastAssignedSpot = nextSpot;
 
             try {
                 await sendConfirmationEmail(data.reservationId, user.email, startTime, endTime);
@@ -143,6 +146,34 @@ export async function handleReservationSubmit(event) {
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = false;
         submitButton.innerHTML = 'Make Reservation';
+    }
+}
+
+async function getNextAvailableSpot() {
+    try {
+        const currentReservations = Array.from(reservationsCache.values());
+        const usedSpots = new Set(currentReservations.map(r => r.spotNumber));
+        
+        let spotNumber = lastAssignedSpot + 1;
+        
+        if (spotNumber > 100) {
+            spotNumber = 1;
+        }
+        
+        while (usedSpots.has(spotNumber)) {
+            spotNumber++;
+            if (spotNumber > 100) {
+                spotNumber = 1;
+            }
+            if (spotNumber === lastAssignedSpot) {
+                throw new Error('No parking spots available');
+            }
+        }
+        
+        return spotNumber;
+    } catch (error) {
+        console.error('Error getting next available spot:', error);
+        throw error;
     }
 }
 
@@ -184,7 +215,6 @@ export async function cancelReservation(reservationId) {
         showSuccessMessage('Reservation cancelled successfully!');
         await loadUserReservations();
         return true;
-
     } catch (error) {
         console.error('Error cancelling reservation:', error);
         showErrorMessage(`Failed to cancel reservation: ${error.message}`);
@@ -245,7 +275,6 @@ export async function loadUserReservations() {
         saveToLocalStorage('userReservations', reservations);
         
         return reservations;
-
     } catch (error) {
         console.error('Error loading reservations:', error);
         showErrorMessage('Failed to load reservations. Please try again later.');
@@ -255,7 +284,7 @@ export async function loadUserReservations() {
 
 function updateParkingStatus(reservations) {
     const now = new Date();
-    const totalSpaces = 100; // Total number of parking spaces
+    const totalSpaces = 100;
     
     const occupiedSpaces = reservations.filter(reservation => {
         const startTime = new Date(reservation.startTime);
@@ -308,7 +337,7 @@ function updateTable(tableId, reservations, includeActions) {
             row.innerHTML = `
                 <td>${formatDateTime(reservation.startTime)}</td>
                 <td>${formatDateTime(reservation.endTime)}</td>
-                <td>${reservation.spotNumber || 'N/A'}</td>
+                <td>A${reservation.spotNumber || 'N/A'}</td>
                 <td><span class="badge bg-${getStatusColor(reservation.status)}">${reservation.status}</span></td>
                 ${includeActions ? `
                     <td>
