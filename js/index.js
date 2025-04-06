@@ -759,7 +759,7 @@ import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations, handleReservationSubmit } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
-import { embedQuickSightDashboard, getCurrentDate } from './quicksight.js';
+import './dashboard.js';
 
 window.manualReconnect = manualReconnect;
 window.loadHistoricalData = loadHistoricalData;
@@ -941,13 +941,16 @@ function switchTab(tabId) {
     });
     document.getElementById(tabId).classList.add('active');
 
+    // Initialize dashboard when switching to analysis tab
     if (tabId === 'analysisTab') {
-        const dashboardContainer = document.getElementById('embedded-dashboard');
-        embedQuickSightDashboard(dashboardContainer, 'daily');
+        if (!window.parkingDashboard) {
+            window.parkingDashboard = new ParkingDashboard();
+        }
     } else if (tabId === 'ReservationsTab') {
         loadUserReservations();
     }
 }
+
 
 function handleError(error) {
     console.error('Application error:', error);
