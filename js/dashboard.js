@@ -5,6 +5,7 @@ class ParkingDashboard {
         this.timeframe = 'daily';
         this.containerDiv = document.getElementById('dashboard-container');
         this.loadingDiv = document.getElementById('dashboard-loading');
+        this.apiEndpoint = 'https://9nilem7pc1.execute-api.us-east-1.amazonaws.com/prod/dashboard';
         this.init();
     }
 
@@ -140,62 +141,31 @@ class ParkingDashboard {
         });
     }
 
-    generateMockData() {
-        if (this.timeframe === 'daily') {
-            // Generate realistic daily pattern
-            return Array.from({length: 24}, (_, hour) => {
-                if (hour >= 7 && hour <= 9) { // Morning peak
-                    return 70 + Math.random() * 20;
-                } else if (hour >= 16 && hour <= 18) { // Evening peak
-                    return 75 + Math.random() * 20;
-                } else if (hour >= 23 || hour <= 5) { // Night time
-                    return 10 + Math.random() * 15;
-                } else { // Regular hours
-                    return 30 + Math.random() * 30;
-                }
-            });
-        } else { // weekly
-            // Generate week pattern with lower weekend occupancy
-            return Array.from({length: 24}, () => 40 + Math.random() * 40);
-        }
-    }
-
     async loadDashboardData() {
         try {
             this.showLoading();
             this.updateDateTime();
 
-            // Simulate loading delay
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const data = this.generateMockData();
+            const response = await fetch(`${this.apiEndpoint}?timeframe=${this.timeframe}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch dashboard data');
+            }
+            
+            const responseData = await response.json();
+            console.log('API Response:', responseData); // Debug log
 
+            this.chart.data.labels = responseData.labels;
+            this.chart.data.datasets[0].data = responseData.data;
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
             
-            this.updateChartData(data);
-            this.hideLoading();
-        } catch (error) {
-            this.showError('Failed to load dashboard data');
-            console.error('Data loading error:', error);
-        }
-    }
-
-    updateChartData(data) {
-        if (this.chart) {
-            this.chart.data.datasets[0].data = data;
             this.chart.update();
-        }
-    }
+            this.hideLoading();
 
-    updatePeakStats(data) {
-        const peakHours = data.slice(7,9).concat(data.slice(16,18));
-        const offPeakHours = data.filter((_, i) => !([7,8,16,17].includes(i)));
-        
-        const peakAvg = peakHours.reduce((a,b) => a + b, 0) / peakHours.length;
-        const offPeakAvg = offPeakHours.reduce((a,b) => a + b, 0) / offPeakHours.length;
-        
-        document.getElementById('peakStats').textContent = 
-            `Peak: ${peakAvg.toFixed(2)}%, Off-Peak: ${offPeakAvg.toFixed(2)}%`;
+        } catch (error) {
+            console.error('Data loading error:', error);
+            this.showError('Failed to load dashboard data');
+        }
     }
 }
 
