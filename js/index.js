@@ -805,33 +805,6 @@ function initializeWebSocketWithAuth() {
     }
 }
 
-function setupDashboardButtons() {
-    const containerDiv = document.getElementById('embedded-dashboard');
-    const dailyBtn = document.getElementById('dailyDashboard');
-    const weeklyBtn = document.getElementById('weeklyDashboard');
-    const dateSpan = document.getElementById('currentDate');
-
-    if (dateSpan) {
-        dateSpan.textContent = getCurrentDate();
-    }
-
-    if (dailyBtn && weeklyBtn && containerDiv) {
-        dailyBtn.addEventListener('click', function() {
-            embedQuickSightDashboard(containerDiv, 'daily');
-            dailyBtn.classList.add('active');
-            weeklyBtn.classList.remove('active');
-        });
-
-        weeklyBtn.addEventListener('click', function() {
-            embedQuickSightDashboard(containerDiv, 'weekly');
-            weeklyBtn.classList.add('active');
-            dailyBtn.classList.remove('active');
-        });
-
-        embedQuickSightDashboard(containerDiv, 'daily');
-        dailyBtn.classList.add('active');
-    }
-}
 
 function initializeApp() {
     console.log('Initializing application...');
@@ -857,7 +830,6 @@ function initializeApp() {
     setInterval(cleanupStorageData, 60 * 60 * 1000);
 
     setupTabNavigation();
-    setupDashboardButtons();
 
     console.log('Application initialization complete.');
 }
