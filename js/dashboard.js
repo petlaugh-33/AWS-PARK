@@ -173,7 +173,6 @@ class ParkingDashboard {
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
             
             this.updateChartData(data);
-            this.updatePeakStats(data);
             this.hideLoading();
         } catch (error) {
             this.showError('Failed to load dashboard data');
