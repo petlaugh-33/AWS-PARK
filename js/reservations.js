@@ -4,8 +4,8 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 
 let reservationsCache = new Map();
-const TOTAL_SPOTS = 6; // Total spots for entire garage
 let lastAssignedSpot = 0;
+const TOTAL_SPOTS = 6; // Total spots for entire garage
 
 export function initializeReservationSystem() {
     try {
@@ -95,21 +95,22 @@ export async function handleReservationSubmit(event) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
-        // Check for available spots during the requested time period
-        const overlappingReservations = Array.from(reservationsCache.values()).filter(r => {
-            const rStart = new Date(r.startTime);
-            const rEnd = new Date(r.endTime);
-            return r.status === 'CONFIRMED' && 
-                   ((startTime >= rStart && startTime < rEnd) ||
-                    (endTime > rStart && endTime <= rEnd) ||
-                    (startTime <= rStart && endTime >= rEnd));
-        });
+        // Check current reservations for the time period
+        const overlappingReservations = Array.from(reservationsCache.values())
+            .filter(r => {
+                const rStart = new Date(r.startTime);
+                const rEnd = new Date(r.endTime);
+                return r.status === 'CONFIRMED' && 
+                       ((startTime >= rStart && startTime < rEnd) ||
+                        (endTime > rStart && endTime <= rEnd) ||
+                        (startTime <= rStart && endTime >= rEnd));
+            });
 
         if (overlappingReservations.length >= TOTAL_SPOTS) {
             throw new Error('No parking spots available for the selected time period');
         }
 
-        // Get next available spot number
+        // Get next spot number
         lastAssignedSpot = (lastAssignedSpot % TOTAL_SPOTS) + 1;
         const nextSpot = lastAssignedSpot;
 
@@ -119,7 +120,8 @@ export async function handleReservationSubmit(event) {
             userId: user.sub,
             userEmail: user.email,
             spotNumber: nextSpot,
-            floor: floorSelect.value
+            floor: floorSelect.value,
+            status: 'CONFIRMED'
         };
         
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
@@ -146,12 +148,8 @@ export async function handleReservationSubmit(event) {
 
         if (data.reservationId) {
             const reservation = {
-                ...data,
-                userId: user.sub,
-                email: user.email,
-                spotNumber: nextSpot,
-                floor: floorSelect.value,
-                status: 'CONFIRMED'
+                ...requestData,
+                reservationId: data.reservationId
             };
             reservationsCache.set(data.reservationId, reservation);
 
@@ -262,11 +260,13 @@ export async function loadUserReservations() {
             reservation.status !== 'CANCELLED'
         );
 
+        // Update cache with complete reservation data
         reservationsCache.clear();
         reservations.forEach(reservation => {
             reservationsCache.set(reservation.reservationId, reservation);
         });
 
+        // Update all UI elements
         updateReservationTables(reservations);
         updateReservationStatistics(reservations);
         updateParkingStatus(reservations);
@@ -295,13 +295,6 @@ function updateParkingStatus(reservations) {
     const occupiedSpaces = activeReservations.length;
     const availableSpaces = TOTAL_SPOTS - occupiedSpaces;
     const occupancyRate = Math.round((occupiedSpaces / TOTAL_SPOTS) * 100);
-
-    console.log('Updating parking status:', {
-        total: TOTAL_SPOTS,
-        occupied: occupiedSpaces,
-        available: availableSpaces,
-        rate: occupancyRate
-    });
 
     document.getElementById('availableSpaces').textContent = availableSpaces;
     document.getElementById('occupiedSpaces').textContent = occupiedSpaces;
@@ -344,7 +337,7 @@ function updateTable(tableId, reservations, includeActions) {
             const row = document.createElement('tr');
             const spotDisplay = reservation.floor && reservation.spotNumber ? 
                 `${reservation.floor}-${reservation.spotNumber}` : 'N/A';
-
+            
             row.innerHTML = `
                 <td>${formatDateTime(reservation.startTime)}</td>
                 <td>${formatDateTime(reservation.endTime)}</td>
@@ -454,7 +447,6 @@ function getStatusColor(status) {
 }
 
 function formatDateTime(dateString) {
-    
     return new Date(dateString).toLocaleString('en-US', {
         year: 'numeric',
         month: '2-digit',
