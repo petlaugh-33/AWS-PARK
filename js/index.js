@@ -9,10 +9,6 @@ window.loadHistoricalData = loadHistoricalData;
 window.cancelReservation = cancelReservation;
 window.handleReservationSubmit = handleReservationSubmit;
 
-// Constants for parking configuration
-const FLOORS = ['P1', 'P2', 'P3', 'P4'];
-const SPOTS_PER_FLOOR = 6;
-
 function checkAuthentication() {
     console.log('Checking authentication...');
     const user = getCurrentUser();
@@ -34,47 +30,10 @@ function updateUserInterface(user) {
     loadUserReservations()
         .then(reservations => {
             console.log(`Loaded ${reservations.length} reservations for user`);
-            updateFloorAvailability(reservations);
         })
         .catch(error => {
             console.error('Error loading reservations:', error);
         });
-}
-
-function updateFloorAvailability(reservations) {
-    const now = new Date();
-    const floorStatus = {};
-
-    // Initialize status for each floor
-    FLOORS.forEach(floor => {
-        floorStatus[floor] = {
-            total: SPOTS_PER_FLOOR,
-            available: SPOTS_PER_FLOOR,
-            occupied: 0
-        };
-    });
-
-    // Calculate occupied spots per floor
-    reservations.forEach(reservation => {
-        const startTime = new Date(reservation.startTime);
-        const endTime = new Date(reservation.endTime);
-        if (startTime <= now && endTime > now && reservation.status === 'CONFIRMED') {
-            const floor = reservation.floor;
-            if (floorStatus[floor]) {
-                floorStatus[floor].occupied++;
-                floorStatus[floor].available--;
-            }
-        }
-    });
-
-    // Update floor status display if you have one
-    updateFloorStatusDisplay(floorStatus);
-}
-
-function updateFloorStatusDisplay(floorStatus) {
-    // This function can be implemented if you want to show per-floor statistics
-    // For now, it's just logging the status
-    console.log('Floor Status:', floorStatus);
 }
 
 function setupTabNavigation() {
@@ -102,6 +61,7 @@ function setupTabNavigation() {
             switchTab('ReservationsTab');
         });
 
+        // Set initial tab
         switchTab('homeTab');
     } else {
         console.error('One or more tabs not found:', {

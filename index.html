@@ -43,7 +43,68 @@
     </style>
 </head>
 <body>
-    <!-- Your existing navigation and header code remains the same -->
+    <script type="module">
+        import { getCurrentUser } from './js/auth.js';
+
+        function checkAuth() {
+            console.log('Checking authentication...');
+            const user = getCurrentUser();
+            if (!user) {
+                console.log('No authenticated user found. Redirecting to login.');
+                window.location.href = 'auth.html';
+            } else {
+                console.log('User authenticated:', user);
+            }
+        }
+
+        checkAuth();
+    </script>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">AmazonPark</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="homeTab">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="analysisTab">Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="ReservationsTab">My Reservations</a>
+                    </li>
+                </ul>
+                <!-- User section -->
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item" id="userSection">
+                        <script type="module">
+                            import { getCurrentUser, logoutUser } from './js/auth.js';
+                            
+                            const user = getCurrentUser();
+                            if (user) {
+                                document.getElementById('userSection').innerHTML = `
+                                    <span class="nav-link">
+                                        <span class="text-light me-3">${user.email}</span>
+                                        <button class="btn btn-outline-light btn-sm" onclick="handleLogout()">Logout</button>
+                                    </span>
+                                `;
+                            }
+
+                            window.handleLogout = () => {
+                                logoutUser();
+                            };
+                        </script>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <!-- Main Container -->
     <div class="container py-4">
@@ -82,6 +143,7 @@
                     <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
                     <form id="reservationForm" class="mb-3">
                         <div class="row g-3">
+                            <!-- Add floor selection -->
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">Select Floor</label>
                                 <select class="form-control" id="floorSelect" required>
@@ -111,6 +173,7 @@
                     </form>
                 </div>
             </div>
+
             <!-- Reservations Table Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
@@ -135,10 +198,91 @@
                 </div>
             </div>
 
-            <!-- Rest of your home page content remains the same -->
+            <!-- Reservation Stats Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Reservation Statistics</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>Active Reservations: <span id="activeReservations" class="badge bg-primary">0</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>Upcoming Reservations: <span id="upcomingReservations" class="badge bg-info">0</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Table Card -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Status History</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Available</th>
+                                    <th>Occupied</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable">
+                                <!-- History will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Analysis Page content remains the same -->
+        <!-- Analysis Page -->
+        <div id="analysisPage" style="display: none;">
+            <!-- Historical Analysis Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Historical Analysis</h5>
+                    <div id="chartError" class="alert alert-danger" style="display:none;"></div>
+                    <div class="btn-group mb-3">
+                        <button class="btn btn-outline-primary" id="dailyDashboard">Daily</button>
+                        <button class="btn btn-outline-primary" id="weeklyDashboard">Weekly</button>
+                    </div>
+                    <div id="currentDate" class="mb-2"></div>
+                    
+                    <!-- Loading state -->
+                    <div id="dashboard-loading" style="height: 800px; width: 100%;">
+                        <div class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading dashboard...</p>
+                        </div>
+                    </div>
+        
+                    <!-- Chart container -->
+                    <div id="dashboard-container" style="display:none;">
+                        <canvas id="dashboardCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Time Analysis Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Time Analysis</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>Time of Day: Peak Hours (7-9 AM, 4-6 PM)</p>
+                            <p>Peak Hours Occupancy: <span class="badge bg-warning">75-92% Occupancy</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>Day of Week: Tuesday</p>
+                            <p>Average Occupancy: <span class="badge bg-info">82% Weekly Avg</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- My Reservations Page -->
         <div id="ReservationsPage" style="display: none;">
@@ -149,6 +293,7 @@
                     <div id="myReservationsError" class="alert alert-danger" style="display:none;"></div>
                     <form id="myReservationsForm" class="mb-3">
                         <div class="row g-3">
+                            <!-- Add floor selection -->
                             <div class="col-md-12 mb-3">
                                 <label class="form-label">Select Floor</label>
                                 <select class="form-control" id="floorSelectReservations" required>
@@ -179,7 +324,65 @@
                 </div>
             </div>
 
-            <!-- Rest of My Reservations page content remains the same -->
+            <!-- Upcoming Reservations -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming Reservations</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Spot</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="upcomingReservationsTable">
+                                <!-- Will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Past Reservations -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Past Reservations</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Spot</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pastReservationsTable">
+                                <!-- Will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reservation Statistics -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Reservation Statistics</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p>Active Reservations: <span id="activeReservationsCount" class="badge bg-primary">0</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>Upcoming Reservations: <span id="upcomingReservationsCount" class="badge bg-info">0</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -190,11 +393,10 @@
         </div>
     </footer>
 
-    <!-- Bootstrap Bundle with Popper -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
             integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
             crossorigin="anonymous"></script>
-    <!-- Main Application JavaScript -->
     <script type="module" src="js/dashboard.js"></script>
     <script type="module" src="js/index.js"></script>
 </body>

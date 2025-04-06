@@ -4,8 +4,8 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 
 let reservationsCache = new Map();
-const TOTAL_SPOTS_PER_FLOOR = 6;
-const FLOORS = ['P1', 'P2', 'P3', 'P4'];
+let lastAssignedSpot = 0;
+const TOTAL_SPOTS = 6; // Total spots for entire garage
 
 export function initializeReservationSystem() {
     try {
@@ -95,8 +95,18 @@ export async function handleReservationSubmit(event) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
-        // Get next available spot for the selected floor
-        const nextSpot = await getNextAvailableSpot(floorSelect.value);
+        // Check for available spots
+        const currentReservations = Array.from(reservationsCache.values())
+            .filter(r => r.status === 'CONFIRMED' && 
+                        new Date(r.startTime) < endTime && 
+                        new Date(r.endTime) > startTime);
+
+        if (currentReservations.length >= TOTAL_SPOTS) {
+            throw new Error('No parking spots available for the selected time period');
+        }
+
+        // Get next available spot number
+        const nextSpot = getNextAvailableSpot(currentReservations);
 
         const requestData = {
             startTime: startTime.toISOString(),
@@ -139,7 +149,7 @@ export async function handleReservationSubmit(event) {
             });
 
             try {
-                await sendConfirmationEmail(data.reservationId, user.email, startTime, endTime, floorSelect.value, nextSpot);
+                await sendConfirmationEmail(data.reservationId, user.email, startTime, endTime);
             } catch (emailError) {
                 console.error('Email confirmation error:', emailError);
             }
@@ -159,30 +169,123 @@ export async function handleReservationSubmit(event) {
     }
 }
 
-async function getNextAvailableSpot(floor) {
-    try {
-        const currentReservations = Array.from(reservationsCache.values())
-            .filter(r => r.floor === floor);
-        const usedSpots = new Set(currentReservations.map(r => r.spotNumber));
-        
-        for (let spotNumber = 1; spotNumber <= TOTAL_SPOTS_PER_FLOOR; spotNumber++) {
-            if (!usedSpots.has(spotNumber)) {
-                return spotNumber;
-            }
+function getNextAvailableSpot(currentReservations) {
+    const usedSpots = new Set(currentReservations.map(r => r.spotNumber));
+    for (let i = 1; i <= TOTAL_SPOTS; i++) {
+        if (!usedSpots.has(i)) {
+            return i;
         }
-        
-        throw new Error(`No parking spots available on floor ${floor}`);
+    }
+    throw new Error('No parking spots available');
+}
+
+export async function cancelReservation(reservationId) {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            redirectToLogin();
+            return false;
+        }
+
+        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
+        }
+
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
+            },
+            credentials: 'include'
+        });
+
+        if (response.status === 401) {
+            redirectToLogin();
+            return false;
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to cancel reservation');
+        }
+
+        reservationsCache.delete(reservationId);
+        showSuccessMessage('Reservation cancelled successfully!');
+        await loadUserReservations();
+        return true;
     } catch (error) {
-        console.error('Error getting next available spot:', error);
-        throw error;
+        console.error('Error cancelling reservation:', error);
+        showErrorMessage(`Failed to cancel reservation: ${error.message}`);
+        return false;
+    } finally {
+        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = 'Cancel';
+        }
     }
 }
 
-// Rest of your existing functions remain the same, but update these specific functions:
+export async function loadUserReservations() {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            return [];
+        }
+
+        const idToken = localStorage.getItem("idToken");
+        if (!idToken) {
+            console.error('No idToken found');
+            return [];
+        }
+
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        let reservations = Array.isArray(data) ? data : [];
+        
+        reservations = reservations.filter(reservation => 
+            (reservation.userId === user.sub || reservation.userEmail === user.email) &&
+            reservation.status !== 'CANCELLED'
+        );
+
+        updateReservationTables(reservations);
+        updateReservationStatistics(reservations);
+        updateParkingStatus(reservations);
+
+        reservationsCache.clear();
+        reservations.forEach(reservation => {
+            reservationsCache.set(reservation.reservationId, reservation);
+        });
+        
+        saveToLocalStorage('userReservations', reservations);
+        
+        return reservations;
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+        showErrorMessage('Failed to load reservations. Please try again later.');
+        return [];
+    }
+}
 
 function updateParkingStatus(reservations) {
     const now = new Date();
-    const totalSpaces = TOTAL_SPOTS_PER_FLOOR * FLOORS.length;
     
     const occupiedSpaces = reservations.filter(reservation => {
         const startTime = new Date(reservation.startTime);
@@ -190,8 +293,8 @@ function updateParkingStatus(reservations) {
         return startTime <= now && endTime > now && reservation.status === 'CONFIRMED';
     }).length;
 
-    const availableSpaces = totalSpaces - occupiedSpaces;
-    const occupancyRate = Math.round((occupiedSpaces / totalSpaces) * 100);
+    const availableSpaces = TOTAL_SPOTS - occupiedSpaces;
+    const occupancyRate = Math.round((occupiedSpaces / TOTAL_SPOTS) * 100);
 
     document.getElementById('availableSpaces').textContent = availableSpaces;
     document.getElementById('occupiedSpaces').textContent = occupiedSpaces;
@@ -204,6 +307,16 @@ function updateParkingStatus(reservations) {
     }
 
     document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+}
+
+function updateReservationTables(reservations) {
+    const now = new Date();
+    const upcoming = reservations.filter(r => new Date(r.endTime) > now);
+    const past = reservations.filter(r => new Date(r.endTime) <= now);
+
+    updateTable('reservationsTable', upcoming, true);
+    updateTable('upcomingReservationsTable', upcoming, true);
+    updateTable('pastReservationsTable', past, false);
 }
 
 function updateTable(tableId, reservations, includeActions) {
@@ -242,6 +355,118 @@ function updateTable(tableId, reservations, includeActions) {
         });
 }
 
-// The rest of your existing code remains the same
+function updateReservationStatistics(reservations) {
+    const now = new Date();
+    const active = reservations.filter(r => 
+        new Date(r.startTime) <= now && new Date(r.endTime) > now
+    ).length;
+    const upcoming = reservations.filter(r => new Date(r.startTime) > now).length;
+
+    updateStatElement('activeReservations', active);
+    updateStatElement('activeReservationsCount', active);
+    updateStatElement('upcomingReservations', upcoming);
+    updateStatElement('upcomingReservationsCount', upcoming);
+}
+
+function updateStatElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function validateReservationTimes(startTime, endTime) {
+    const now = new Date();
+    const openingHour = 7;
+    const closingHour = 23;
+
+    if (startTime < now) {
+        showErrorMessage('Start time must be in the future');
+        return false;
+    }
+
+    if (endTime <= startTime) {
+        showErrorMessage('End time must be after start time');
+        return false;
+    }
+
+    if (startTime.getHours() < openingHour || startTime.getHours() > closingHour ||
+        endTime.getHours() < openingHour || endTime.getHours() > closingHour) {
+        showErrorMessage('Reservations must be between 7:00 AM and 11:00 PM EST');
+        return false;
+    }
+
+    const duration = (endTime - startTime) / (1000 * 60 * 60);
+    if (duration > 24) {
+        showErrorMessage('Reservation cannot exceed 24 hours');
+        return false;
+    }
+
+    if (duration < 1) {
+        showErrorMessage('Reservation must be at least 1 hour');
+        return false;
+    }
+
+    return true;
+}
+
+async function sendConfirmationEmail(reservationId, userEmail, startTime, endTime) {
+    const token = localStorage.getItem('idToken');
+    const response = await fetch(CONFIRMATION_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            reservationId,
+            userEmail,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString()
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to send confirmation email');
+    }
+
+    return response.json();
+}
+
+function getStatusColor(status) {
+    switch (status) {
+        case 'CONFIRMED': return 'success';
+        case 'PENDING': return 'warning';
+        case 'CANCELLED': return 'danger';
+        case 'COMPLETED': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function formatDateTime(dateString) {
+    return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'America/New_York'
+    });
+}
+
+function startReservationRefresh()  {
+    setInterval(loadUserReservations, RESERVATION_REFRESH_INTERVAL);
+}
+
+function startPeriodicUpdates() {
+    setInterval(async () => {
+        await loadUserReservations();
+    }, 60000);
+}
+
+window.cancelReservation = cancelReservation;
+
+document.addEventListener('DOMContentLoaded', initializeReservationSystem);
 
 export { reservationsCache };
