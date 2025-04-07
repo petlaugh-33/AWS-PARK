@@ -8,33 +8,48 @@ function convertToEST(dateString) {
 
 // Initialize UI
 export function initializeUI() {
-    // Add tab event listeners
-    document.getElementById('homeTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('homeTab');
-    });
-
-    document.getElementById('analysisTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('analysisTab');
-    });
-
-    // Load initial data
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus) {
-        updateStatus(savedStatus);
-    }
-
-    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-    if (savedHistory) {
-        updateHistoryTable(savedHistory);
-    }
-
-    // Set initial tab
-    switchTab('homeTab');
-
-    // Update storage time display
-    updateDataStorageTime();
+        try {
+            // Add tab event listeners
+            const homeTab = document.getElementById('homeTab');
+            const analysisTab = document.getElementById('analysisTab');
+    
+            if (homeTab) {
+                homeTab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchTab('homeTab');
+                });
+            }
+    
+            if (analysisTab) {
+                analysisTab.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchTab('analysisTab');
+                });
+            }
+    
+            // Load initial data
+            const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+            if (savedStatus) {
+                updateStatus(savedStatus);
+            }
+    
+            const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
+            if (savedHistory) {
+                updateHistoryTable(savedHistory);
+            }
+    
+            // Set initial tab
+            switchTab('homeTab');
+    
+            // Update storage time display
+            updateDataStorageTime();
+    
+            console.log('UI initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Error initializing UI:', error);
+            return false;
+        }
 }
 
 // Tab switching functionality
@@ -52,31 +67,46 @@ export function switchTab(tabId) {
 export function updateStatus(data) {
     console.log('Updating status with data:', data);
     const mainStatus = document.getElementById('mainStatus');
+    if (!mainStatus) {
+        console.warn('Main status element not found');
+        return;
+    }
+
     mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
 
-    // Add this line to update reservation stats
-    updateReservationStats(data);
-
+    // Update reservation stats if the function exists
+    if (typeof updateReservationStats === 'function') {
+        updateReservationStats(data);
+    }
+    // Safely update elements
     document.getElementById('availableSpaces').textContent = data.availableSpaces;
     document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
     document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
     document.getElementById('lastUpdated').textContent = formatDateTime(data.lastUpdated);
     
     const bar = document.getElementById('occupancyBar');
-    bar.style.width = `${data.occupancyRate}%`;
+    if (bar) {
+        bar.style.width = `${data.occupancyRate}%`;
+        updateOccupancyBarColor(bar, data.occupancyRate);
+    }
     
-    updateOccupancyBarColor(bar, data.occupancyRate);
-    
-    // Update this line to use EST
-    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' });
-    
-    mainStatus.classList.add('update-animation');
-    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+    if (mainStatus) {
+        mainStatus.classList.add('update-animation');
+        setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+    }
 
     saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
     updateDataStorageTime();
 }
-
+// Helper function to safely update element content
+function safelyUpdateElement(id, content) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = content;
+    } else {
+        console.warn(`Element with id '${id}' not found`);
+    }
+}
 // Add this function to your ui.js
 function updateReservationStats(status) {
     if (status) {
