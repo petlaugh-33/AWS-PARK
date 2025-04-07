@@ -1,8 +1,6 @@
 import { STORAGE_KEYS, CHART_TYPES, API_ENDPOINT, MAX_HISTORY } from './constants.js';
 import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 
-let occupancyChart = null;
-
 function convertToEST(dateString) {
     const date = new Date(dateString);
     return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -31,10 +29,6 @@ export function initializeUI() {
     if (savedHistory) {
         updateHistoryTable(savedHistory);
     }
-
-    // Initialize chart with last selected type
-    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
-    loadHistoricalData(lastChartType);
 
     // Set initial tab
     switchTab('homeTab');
@@ -207,83 +201,6 @@ function createHistoryRow(entry) {
     `;
 }
 
-// Load historical data
-export async function loadHistoricalData(timeframe) {
-    try {
-        saveToLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE, timeframe);
-        const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        updateChart(data, timeframe);
-    } catch (error) {
-        console.error('Error loading historical data:', error);
-        const chartError = document.getElementById('chartError');
-        if (chartError) {
-            chartError.textContent = `Failed to load historical data: ${error.message}`;
-            chartError.style.display = 'block';
-        }
-    }
-}
-
-// Update chart
-export function updateChart(data, timeframe) {
-    const ctx = document.getElementById('occupancyChart')?.getContext('2d');
-    if (!ctx) return;
-    
-    if (occupancyChart) {
-        occupancyChart.destroy();
-    }
-    
-    const labels = getChartLabels(timeframe);
-    const chartData = timeframe === 'daily' ? data.hourly : data.daily;
-    
-    occupancyChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Average Occupancy Rate',
-                data: labels.map(label => {
-                    const key = timeframe === 'daily' ? 
-                        label.split(':')[0] : 
-                        labels.indexOf(label).toString();
-                    return chartData[key] || 0;
-                }),
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: 'Occupancy Rate (%)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: timeframe === 'daily' ? 'Hour of Day' : 'Day of Week'
-                    }
-                }
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: `Parking Occupancy - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} View`
-                }
-            }
-        }
-    });
-
-    updatePeakInfo(data);
-}
 
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
@@ -302,21 +219,6 @@ function formatDateTime(dateString) {
     } catch (error) {
         console.error('Error formatting date:', dateString, error);
         return 'Invalid Date';
-    }
-}
-
-// Get chart labels
-function getChartLabels(timeframe) {
-    return timeframe === 'daily' ?
-        Array.from({length: 24}, (_, i) => `${i}:00`) :
-        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-}
-
-// Update peak information
-function updatePeakInfo(data) {
-    const peakInfo = document.getElementById('peakInfo');
-    if (peakInfo && data.peak) {
-        peakInfo.textContent = `Peak: ${data.peak.peak.toFixed(2)}%, Off-Peak: ${data.peak.offPeak.toFixed(2)}%`;
     }
 }
 
