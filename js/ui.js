@@ -6,127 +6,148 @@ function convertToEST(dateString) {
     return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
 }
 
-// Initialize UI
 export function initializeUI() {
-        try {
-            // Add tab event listeners
-            const homeTab = document.getElementById('homeTab');
-            const analysisTab = document.getElementById('analysisTab');
-    
-            if (homeTab) {
-                homeTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    switchTab('homeTab');
-                });
-            }
-    
-            if (analysisTab) {
-                analysisTab.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    switchTab('analysisTab');
-                });
-            }
-    
-            // Load initial data
-            const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-            if (savedStatus) {
-                updateStatus(savedStatus);
-            }
-    
-            const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-            if (savedHistory) {
-                updateHistoryTable(savedHistory);
-            }
-    
-            // Set initial tab
-            switchTab('homeTab');
-    
-            // Update storage time display
-            updateDataStorageTime();
-    
-            console.log('UI initialized successfully');
-            return true;
-        } catch (error) {
-            console.error('Error initializing UI:', error);
-            return false;
-        }
+    try {
+        setupTabListeners();
+        loadInitialData();
+        switchTab('homeTab');
+        updateDataStorageTime();
+        console.log('UI initialized successfully');
+        return true;
+    } catch (error) {
+        console.error('Error initializing UI:', error);
+        return false;
+    }
 }
 
-// Tab switching functionality
+function setupTabListeners() {
+    ['homeTab', 'analysisTab'].forEach(tabId => {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchTab(tabId);
+            });
+        }
+    });
+}
+
+function loadInitialData() {
+    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (savedStatus) updateStatus(savedStatus);
+
+    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
+    if (savedHistory) updateHistoryTable(savedHistory);
+}
+
 export function switchTab(tabId) {
     document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
     document.getElementById('analysisPage').style.display = tabId === 'analysisTab' ? 'block' : 'none';
     
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
 }
 
-// Update parking status
 export function updateStatus(data) {
     console.log('Updating status with data:', data);
-    const mainStatus = document.getElementById('mainStatus');
-    if (!mainStatus) {
-        console.warn('Main status element not found');
-        return;
-    }
-
-    mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-
-    // Update reservation stats if the function exists
-    if (typeof updateReservationStats === 'function') {
-        updateReservationStats(data);
-    }
-    // Safely update elements
-    document.getElementById('availableSpaces').textContent = data.availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-    document.getElementById('lastUpdated').textContent = formatDateTime(data.lastUpdated);
     
-    const bar = document.getElementById('occupancyBar');
-    if (bar) {
-        bar.style.width = `${data.occupancyRate}%`;
-        updateOccupancyBarColor(bar, data.occupancyRate);
-    }
-    
-    if (mainStatus) {
-        mainStatus.classList.add('update-animation');
-        setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-    }
-
-    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
-    updateDataStorageTime();
+    ['P1', 'P2', 'P3', 'P4'].forEach(floor => updateFloorDisplay(floor, data));
+    updateLastUpdated(data.lastUpdated);
+    updateReservationStats(data);
 }
-// Helper function to safely update element content
-function safelyUpdateElement(id, content) {
+
+function updateFloorDisplay(floor, data) {
+    try {
+        updateElement(`${floor}-availableSpaces`, data.availableSpaces || 6);
+        updateElement(`${floor}-occupiedSpaces`, data.occupiedSpaces || 0);
+        updateOccupancyBar(`${floor}-occupancyBar`, data.occupiedSpaces);
+    } catch (error) {
+        console.error(`Error updating floor ${floor}:`, error);
+    }
+}
+
+function updateElement(id, value) {
     const element = document.getElementById(id);
     if (element) {
-        element.textContent = content;
-    } else {
-        console.warn(`Element with id '${id}' not found`);
+        element.textContent = value;
+        element.classList.add('update-animation');
+        setTimeout(() => element.classList.remove('update-animation'), 1000);
     }
 }
-// Add this function to your ui.js
+
+function updateOccupancyBar(id, occupiedSpaces) {
+    const bar = document.getElementById(id);
+    if (bar) {
+        const occupancyRate = (occupiedSpaces / 6) * 100;
+        bar.style.width = `${occupancyRate}%`;
+        bar.className = `progress-bar ${getOccupancyClass(occupancyRate)}`;
+        bar.classList.add('bar-update-animation');
+        setTimeout(() => bar.classList.remove('bar-update-animation'), 1000);
+    }
+}
+
+function getOccupancyClass(rate) {
+    if (rate >= 90) return 'bg-danger';
+    if (rate >= 70) return 'bg-warning';
+    return 'bg-success';
+}
+
+function updateLastUpdated(timestamp) {
+    updateElement('lastUpdated', formatDateTime(timestamp));
+}
+
+export function initializeWebSocket() {
+    console.log('Initializing WebSocket connection...');
+    const ws = new WebSocket('wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production');
+    
+    ws.onopen = () => {
+        console.log('WebSocket connected');
+        sendHeartbeat(ws);
+    };
+    
+    ws.onmessage = (event) => {
+        console.log('WebSocket message received:', event.data);
+        try {
+            const message = JSON.parse(event.data);
+            if (message.type === 'status_update') handleStatusUpdate(message);
+        } catch (error) {
+            console.error('Error processing WebSocket message:', error);
+        }
+    };
+    
+    ws.onerror = (error) => console.error('WebSocket error:', error);
+    
+    ws.onclose = () => {
+        console.log('WebSocket closed. Attempting to reconnect...');
+        setTimeout(initializeWebSocket, 3000);
+    };
+
+    setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) sendHeartbeat(ws);
+    }, 30000);
+
+    return ws;
+}
+
+function sendHeartbeat(ws) {
+    ws.send(JSON.stringify({ action: 'heartbeat' }));
+}
+
+function handleStatusUpdate(message) {
+    const data = message.floors ? message.floors.P1 : message.data;
+    if (data) {
+        updateStatus(data);
+        addToHistory(data);
+    }
+}
+
 function updateReservationStats(status) {
     if (status) {
-        document.getElementById('activeReservations').textContent = status.activeReservations || 0;
-        document.getElementById('upcomingReservations').textContent = status.upcomingReservations || 0;
+        updateElement('activeReservations', status.activeReservations || 0);
+        updateElement('upcomingReservations', status.upcomingReservations || 0);
     }
 }
 
-// Update occupancy bar color based on rate
-function updateOccupancyBarColor(bar, rate) {
-    if (rate < 70) {
-        bar.className = 'progress-bar bg-success';
-    } else if (rate < 90) {
-        bar.className = 'progress-bar bg-warning';
-    } else {
-        bar.className = 'progress-bar bg-danger';
-    }
-}
-
-// Add data to history
 export function addToHistory(data) {
     try {
         if (!validateHistoryData(data)) {
@@ -134,19 +155,15 @@ export function addToHistory(data) {
             return;
         }
 
-        const time = new Date(data.lastUpdated).toLocaleTimeString();
         const history = loadFromLocalStorage(STORAGE_KEYS.HISTORY) || [];
-        
         history.unshift({
-            time,
+            time: new Date(data.lastUpdated).toLocaleTimeString(),
             available: data.availableSpaces,
             occupied: data.occupiedSpaces,
             status: data.parkingStatus
         });
 
-        if (history.length > MAX_HISTORY) {
-            history.pop();
-        }
+        if (history.length > MAX_HISTORY) history.pop();
 
         saveToLocalStorage(STORAGE_KEYS.HISTORY, history);
         updateHistoryTable(history);
@@ -155,7 +172,6 @@ export function addToHistory(data) {
     }
 }
 
-// Validate history data
 function validateHistoryData(data) {
     return data &&
            data.lastUpdated &&
@@ -164,53 +180,16 @@ function validateHistoryData(data) {
            data.parkingStatus;
 }
 
-// Update history table
 function updateHistoryTable(history) {
     const tbody = document.getElementById('historyTable');
     if (!tbody) return;
 
     tbody.innerHTML = history
-        .filter(entry => entry && entry.lastUpdated) // Validate entry has lastUpdated
-        .map(entry => {
-            // Format the time in EST
-            const time = new Date(entry.lastUpdated).toLocaleString('en-US', {
-                timeZone: 'America/New_York',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
-
-            return `
-                <tr>
-                    <td>${time}</td>
-                    <td>${entry.availableSpaces}</td>
-                    <td>${entry.occupiedSpaces}</td>
-                    <td><span class="badge bg-${getStatusBadgeColor(entry.parkingStatus)}">${entry.parkingStatus}</span></td>
-                </tr>
-            `;
-        })
+        .filter(entry => validateHistoryEntry(entry))
+        .map(createHistoryRow)
         .join('');
 }
 
-// Helper function for status badge colors
-function getStatusBadgeColor(status) {
-    switch (status) {
-        case 'AVAILABLE':
-            return 'success';
-        case 'LIMITED':
-            return 'warning';
-        case 'FULL':
-            return 'danger';
-        default:
-            return 'secondary';
-    }
-}
-
-// Add this helper function if you don't have it
 function validateHistoryEntry(entry) {
     return entry && 
            entry.time && 
@@ -219,11 +198,10 @@ function validateHistoryEntry(entry) {
            entry.status;
 }
 
-// Create history table row
 function createHistoryRow(entry) {
     return `
         <tr>
-            <td>${new Date(entry.time).toLocaleString('en-US', { timeZone: 'America/New_York' })}</td>
+            <td>${formatDateTime(entry.time)}</td>
             <td>${entry.available}</td>
             <td>${entry.occupied}</td>
             <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
@@ -231,6 +209,14 @@ function createHistoryRow(entry) {
     `;
 }
 
+function getStatusBadgeColor(status) {
+    switch (status) {
+        case 'AVAILABLE': return 'success';
+        case 'LIMITED': return 'warning';
+        case 'FULL': return 'danger';
+        default: return 'secondary';
+    }
+}
 
 function formatDateTime(dateString) {
     if (!dateString) return 'N/A';
@@ -252,17 +238,14 @@ function formatDateTime(dateString) {
     }
 }
 
-// Show success message
 export function showSuccessMessage(message) {
     showMessage(message, 'success');
 }
 
-// Show error message
 export function showErrorMessage(message) {
     showMessage(message, 'danger');
 }
 
-// Show message helper
 function showMessage(message, type) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `alert alert-${type} mt-3`;
@@ -275,13 +258,12 @@ function showMessage(message, type) {
     }
 }
 
-// Update data storage time
 function updateDataStorageTime() {
     const storageTimeElement = document.getElementById('dataStorageTime');
     if (storageTimeElement) {
         const lastUpdated = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS)?.lastUpdated;
         storageTimeElement.textContent = lastUpdated ? 
-            new Date(lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' }) : 
+            formatDateTime(lastUpdated) : 
             'No data stored';
     }
 }
