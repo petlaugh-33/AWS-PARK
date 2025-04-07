@@ -163,23 +163,27 @@ class ParkingDashboard {
             this.showLoading();
             this.updateDateTime();
     
+            console.log('Fetching data for timeframe:', this.timeframe);
             const response = await fetch(`${this.apiEndpoint}?timeframe=${this.timeframe}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch dashboard data');
             }
             
             const responseData = await response.json();
-            console.log('API Response:', responseData);
+            console.log('Raw API Response:', responseData);
     
-            // Parse the response if it's stringified
-            const parsedData = typeof responseData.body === 'string' 
-                ? JSON.parse(responseData.body) 
-                : responseData;
+            // Parse the response body
+            const parsedData = JSON.parse(responseData.body);
+            console.log('Parsed Chart Data:', parsedData);
+    
+            // Update chart data
+            this.chart.data.labels = parsedData.labels;
+            this.chart.data.datasets[0].data = parsedData.data;
     
             // Update x-axis configuration based on timeframe
             if (this.timeframe === 'weekly') {
                 this.chart.options.scales.x = {
-                    ...this.chart.options.scales.x,
+                    type: 'category',
                     title: {
                         display: true,
                         text: 'Day of Week',
@@ -190,28 +194,25 @@ class ParkingDashboard {
                         maxRotation: 45
                     }
                 };
+                console.log('Weekly View Labels:', parsedData.labels);
             } else {
                 this.chart.options.scales.x = {
-                    ...this.chart.options.scales.x,
+                    type: 'category',
                     title: {
                         display: true,
                         text: 'Hour of Day',
                         font: { weight: 'bold' }
                     },
                     ticks: {
-                        callback: value => `${value}:00`
+                        callback: value => value
                     }
                 };
             }
     
-            // Update chart data
-            this.chart.data.labels = parsedData.labels;
-            this.chart.data.datasets[0].data = parsedData.data;
-            
             // Update chart title
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
-            
+    
             this.chart.update();
             this.hideLoading();
     
