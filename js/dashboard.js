@@ -175,15 +175,19 @@ class ParkingDashboard {
             // Parse the response body if it's a string
             const parsedData = typeof responseData.body === 'string' 
                 ? JSON.parse(responseData.body) 
-                : responseData.body;
-            console.log('Parsed Chart Data:', parsedData);
+                : responseData;
+                
+            console.log('Timeframe:', parsedData.timeframe);  // Debug log
+            console.log('Labels:', parsedData.labels);        // Debug log
+            console.log('Data:', parsedData.data);           // Debug log
     
             // Update chart data
-            this.chart.data.labels = parsedData.labels;
-            this.chart.data.datasets[0].data = parsedData.data;
-    
-            // Update x-axis configuration based on timeframe
-            if (this.timeframe === 'weekly') {
+            if (parsedData.timeframe === 'weekly') {
+                // Weekly view
+                this.chart.data.labels = parsedData.labels; // Should be days of week
+                this.chart.data.datasets[0].data = parsedData.data;
+                
+                // Configure x-axis for weekly view
                 this.chart.options.scales.x = {
                     type: 'category',
                     title: {
@@ -197,6 +201,11 @@ class ParkingDashboard {
                     }
                 };
             } else {
+                // Daily view
+                this.chart.data.labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+                this.chart.data.datasets[0].data = parsedData.data;
+                
+                // Configure x-axis for daily view
                 this.chart.options.scales.x = {
                     type: 'category',
                     title: {
@@ -205,9 +214,6 @@ class ParkingDashboard {
                         font: { weight: 'bold' }
                     },
                     ticks: {
-                        callback: function(value, index) {
-                            return `${index}:00`;
-                        },
                         autoSkip: false,
                         maxRotation: 45
                     }
