@@ -163,8 +163,10 @@ class ParkingDashboard {
             this.showLoading();
             this.updateDateTime();
     
-            console.log('Fetching data for timeframe:', this.timeframe);
-            const response = await fetch(`${this.apiEndpoint}?timeframe=${this.timeframe}`);
+            const url = `${this.apiEndpoint}?timeframe=${this.timeframe}`;
+            console.log('Calling API with URL:', url);  // Debug log
+            
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Failed to fetch dashboard data');
             }
@@ -172,19 +174,13 @@ class ParkingDashboard {
             const responseData = await response.json();
             console.log('Raw API Response:', responseData);
     
-            // Parse the response body if it's a string
-            const parsedData = typeof responseData.body === 'string' 
-                ? JSON.parse(responseData.body) 
-                : responseData;
-                
-            console.log('Timeframe:', parsedData.timeframe);  // Debug log
-            console.log('Labels:', parsedData.labels);        // Debug log
-            console.log('Data:', parsedData.data);           // Debug log
+            const parsedData = JSON.parse(responseData.body);
+            console.log('Parsed response:', parsedData);
     
-            // Update chart data
-            if (parsedData.timeframe === 'weekly') {
-                // Weekly view
-                this.chart.data.labels = parsedData.labels; // Should be days of week
+            // Set chart data based on timeframe
+            if (this.timeframe === 'weekly') {
+                console.log('Setting up weekly view');
+                this.chart.data.labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                 this.chart.data.datasets[0].data = parsedData.data;
                 
                 // Configure x-axis for weekly view
@@ -201,8 +197,8 @@ class ParkingDashboard {
                     }
                 };
             } else {
-                // Daily view
-                this.chart.data.labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+                console.log('Setting up daily view');
+                this.chart.data.labels = parsedData.labels;
                 this.chart.data.datasets[0].data = parsedData.data;
                 
                 // Configure x-axis for daily view
@@ -220,7 +216,6 @@ class ParkingDashboard {
                 };
             }
     
-            // Update chart title
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
     
