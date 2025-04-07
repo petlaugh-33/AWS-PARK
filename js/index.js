@@ -1,5 +1,5 @@
 import { initializeStorage, cleanupStorageData } from './storage.js';
-import { initializeUI, loadHistoricalData } from './ui.js';
+import { initializeUI } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations, handleReservationSubmit } from './reservations.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 import './dashboard.js';
