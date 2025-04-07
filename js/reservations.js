@@ -73,18 +73,11 @@ function convertToEST(date) {
 async function getNextAvailableSpotForFloor(floor, startTime, endTime) {
     console.log(`Finding available spot for floor ${floor}`);
     
-    const requestDate = new Date(startTime);
-    const requestDay = new Date(requestDate.getFullYear(), requestDate.getMonth(), requestDate.getDate());
-    const nextDay = new Date(requestDay);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    // Get reservations for the requested day
+    // Get current reservations for this floor during the specified time period
     const floorReservations = Array.from(reservationsCache.values())
         .filter(r => 
             r.floor === floor && 
             r.status === 'CONFIRMED' &&
-            new Date(r.startTime) < nextDay &&
-            new Date(r.endTime) > requestDay &&
             new Date(r.startTime) < new Date(endTime) &&
             new Date(r.endTime) > new Date(startTime)
         );
@@ -97,14 +90,13 @@ async function getNextAvailableSpotForFloor(floor, startTime, endTime) {
     const usedSpots = new Set(floorReservations.map(r => r.spotNumber));
     for (let i = 1; i <= SPOTS_PER_FLOOR; i++) {
         if (!usedSpots.has(i)) {
-            console.log(`Selected spot ${floor}-${i}`);
+            console.log(`Selected spot ${i} on floor ${floor}`);
             return i;
         }
     }
 
     throw new Error(`No spots available on floor ${floor}`);
 }
-
 export async function handleReservationSubmit(event) {
     event.preventDefault();
     console.log('Handling reservation submit');
@@ -155,7 +147,7 @@ export async function handleReservationSubmit(event) {
         const requestData = {
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-               userId: user.sub,
+            userId: user.sub,
             userEmail: user.email,
             floor: selectedFloor,
             spotNumber: nextSpot,
@@ -225,7 +217,7 @@ export async function cancelReservation(reservationId) {
         if (!user) {
             console.log('No authenticated user');
             redirectToLogin();
-            re return false;
+            return false;
         }
 
         const reservation = reservationsCache.get(reservationId);
@@ -279,7 +271,6 @@ export async function cancelReservation(reservationId) {
         }
     }
 }
-
 export async function loadUserReservations() {
     try {
         const user = getCurrentUser();
@@ -326,20 +317,11 @@ export async function loadUserReservations() {
             floorStats[floor].occupied = 0;
         });
 
-        // Update cache and recalculate floor stats for today's reservations
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
+        // Update cache and recalculate floor stats
         reservations.forEach(reservation => {
             reservationsCache.set(reservation.reservationId, reservation);
-            if (reservation.floor && 
-                reservation.status === 'CONFIRMED' &&
-                new Date(reservation.startTime) < tomorrow &&
-                new Date(reservation.endTime) > today) {
-                    floorStats[reservation.floor].occupied++;
-                    floorStats[reservation.floor].available--;
+            if (reservation.floor && reservation.status === 'CONFIRMED') {
+                updateFloorStats(reservation.floor);
             }
         });
 
@@ -359,21 +341,18 @@ export async function loadUserReservations() {
 }
 
 function updateFloorStats(floor) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const now = new Date();
     
-    // Get reservations for today
-    const todayReservations = Array.from(reservationsCache.values())
+    // Get active reservations for this floor
+    const activeReservations = Array.from(reservationsCache.values())
         .filter(r => 
             r.floor === floor &&
             r.status === 'CONFIRMED' &&
-            new Date(r.startTime) < tomorrow &&
-            new Date(r.endTime) > today
+            new Date(r.startTime) <= now &&
+            new Date(r.endTime) > now
         );
 
-    const occupied = todayReservations.length;
+    const occupied = activeReservations.length;
     const available = SPOTS_PER_FLOOR - occupied;
     const occupancyRate = Math.round((occupied / SPOTS_PER_FLOOR) * 100);
 
@@ -391,15 +370,10 @@ function updateFloorStats(floor) {
         progressBar.style.width = `${occupancyRate}%`;
         progressBar.setAttribute('aria-valuenow', occupancyRate);
         
+        // Update color based on occupancy
         progressBar.className = 'progress-bar ' + 
             (occupancyRate >= 80 ? 'bg-danger' :
              occupancyRate >= 50 ? 'bg-warning' : 'bg-success');
-    }
-
-    // Update last updated timestamp
-    const lastUpdatedElement = document.getElementById('lastUpdated');
-    if (lastUpdatedElement) {
-        lastUpdatedElement.textContent = formatDateTime(new Date());
     }
 }
 
@@ -558,7 +532,7 @@ function startReservationRefresh() {
 function startPeriodicUpdates() {
     setInterval(async () => {
         await loadUserReservations();
-    }, 60000); // Update every minute
+    }, 60000);
 }
 
 // Initialize everything

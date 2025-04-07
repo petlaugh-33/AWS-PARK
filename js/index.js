@@ -73,12 +73,14 @@ function highlightSelectedFloor(selectedFloor) {
 function setupTabNavigation() {
     console.log('Setting up tab navigation...');
     
+    // Get all tabs and pages
     const tabsConfig = {
         homeTab: { pageId: 'homePage', handler: () => loadUserReservations() },
         analysisTab: { pageId: 'analysisPage', handler: () => { /* Analysis specific logic */ } },
         ReservationsTab: { pageId: 'ReservationsPage', handler: () => loadUserReservations() }
     };
 
+    // Add click handlers for each tab
     Object.entries(tabsConfig).forEach(([tabId, config]) => {
         const tab = document.getElementById(tabId);
         if (tab) {
@@ -90,12 +92,14 @@ function setupTabNavigation() {
         }
     });
 
+    // Set initial tab
     switchTab('homeTab', 'homePage', tabsConfig.homeTab.handler);
 }
 
 function switchTab(tabId, pageId, handler) {
     console.log(`Switching to tab: ${tabId}, page: ${pageId}`);
 
+    // Hide all pages
     ['homePage', 'analysisPage', 'ReservationsPage'].forEach(id => {
         const page = document.getElementById(id);
         if (page) {
@@ -103,11 +107,13 @@ function switchTab(tabId, pageId, handler) {
         }
     });
 
+    // Show selected page
     const selectedPage = document.getElementById(pageId);
     if (selectedPage) {
         selectedPage.style.display = 'block';
     }
 
+    // Update active state of tabs
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
@@ -117,25 +123,9 @@ function switchTab(tabId, pageId, handler) {
         activeTab.classList.add('active');
     }
 
+    // Execute tab-specific handler
     if (handler) {
         handler();
-    }
-}
-
-function updateDateTime() {
-    const dateTimeElement = document.getElementById('currentDateTime');
-    if (dateTimeElement) {
-        const now = new Date();
-        dateTimeElement.querySelector('span').textContent = now.toLocaleString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            timeZoneName: 'short'
-        });
     }
 }
 
@@ -161,9 +151,6 @@ function initializeApp() {
     setInterval(cleanupStorageData, 60 * 60 * 1000);
 
     setupTabNavigation();
-
-    updateDateTime();
-    setInterval(updateDateTime, 1000);  // Update every second
 
     console.log('Application initialization complete.');
 }
