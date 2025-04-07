@@ -4,7 +4,16 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 
 let reservationsCache = new Map();
-const TOTAL_SPOTS = 6; // Total spots for entire garage
+const SPOTS_PER_FLOOR = 6;
+const FLOORS = ['P1', 'P2', 'P3', 'P4'];
+
+// Track spots per floor
+const floorOccupancy = {
+    P1: new Set(),
+    P2: new Set(),
+    P3: new Set(),
+    P4: new Set()
+};
 
 export function initializeReservationSystem() {
     try {
@@ -14,10 +23,17 @@ export function initializeReservationSystem() {
             if (form) {
                 const startTimeInput = form.querySelector('[id^="startTime"]');
                 const endTimeInput = form.querySelector('[id^="endTime"]');
+                const floorSelect = form.querySelector('select[id*="floorSelect"]');
                 
                 if (startTimeInput && endTimeInput) {
                     startTimeInput.addEventListener('change', handleStartTimeChange);
                     form.addEventListener('submit', handleReservationSubmit);
+                }
+
+                if (floorSelect) {
+                    floorSelect.addEventListener('change', (e) => {
+                        updateParkingStatus(e.target.value);
+                    });
                 }
             }
         });
@@ -46,6 +62,37 @@ function handleStartTimeChange(event) {
 
 function convertToEST(date) {
     return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+}
+
+function getNextAvailableSpotForFloor(floor, startTime, endTime) {
+    // Get current reservations for this floor during the specified time period
+    const floorReservations = Array.from(reservationsCache.values())
+        .filter(r => 
+            r.floor === floor && 
+            r.status === 'CONFIRMED' &&
+            new Date(r.startTime) < new Date(endTime) &&
+            new Date(r.endTime) > new Date(startTime)
+        );
+
+    console.log(`Checking spots for floor ${floor}:`, {
+        totalReservations: floorReservations.length,
+        maxSpots: SPOTS_PER_FLOOR
+    });
+
+    if (floorReservations.length >= SPOTS_PER_FLOOR) {
+        throw new Error(`No spots available on floor ${floor} for the selected time period`);
+    }
+
+    // Find first available spot number for this floor
+    const usedSpots = new Set(floorReservations.map(r => r.spotNumber));
+    for (let i = 1; i <= SPOTS_PER_FLOOR; i++) {
+        if (!usedSpots.has(i)) {
+            console.log(`Found available spot ${i} on floor ${floor}`);
+            return i;
+        }
+    }
+
+    throw new Error(`No spots available on floor ${floor}`);
 }
 export async function handleReservationSubmit(event) {
     event.preventDefault();
@@ -81,6 +128,7 @@ export async function handleReservationSubmit(event) {
         return;
     }
 
+    const selectedFloor = floorSelect.value;
     const startTime = convertToEST(new Date(startTimeInput.value));
     const endTime = convertToEST(new Date(endTimeInput.value));
 
@@ -93,33 +141,8 @@ export async function handleReservationSubmit(event) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
-        // Check available spots
-        const currentReservations = Array.from(reservationsCache.values())
-            .filter(r => {
-                const rStart = new Date(r.startTime);
-                const rEnd = new Date(r.endTime);
-                return r.status === 'CONFIRMED' && 
-                       ((startTime >= rStart && startTime < rEnd) ||
-                        (endTime > rStart && endTime <= rEnd) ||
-                        (startTime <= rStart && endTime >= rEnd));
-            });
-
-        if (currentReservations.length >= TOTAL_SPOTS) {
-            throw new Error('No parking spots available for the selected time period');
-        }
-
-        // Get next spot number (1-6)
-        const usedSpots = new Set(currentReservations.map(r => r.spotNumber));
-        let nextSpot;
-        for (let i = 1; i <= TOTAL_SPOTS; i++) {
-            if (!usedSpots.has(i)) {
-                nextSpot = i;
-                break;
-            }
-        }
-        if (!nextSpot) {
-            throw new Error('No parking spots available');
-        }
+        // Get next available spot for the selected floor
+        const nextSpot = await getNextAvailableSpotForFloor(selectedFloor, startTime, endTime);
 
         const requestData = {
             startTime: startTime.toISOString(),
@@ -127,11 +150,11 @@ export async function handleReservationSubmit(event) {
             userId: user.sub,
             userEmail: user.email,
             spotNumber: nextSpot,
-            floor: floorSelect.value,
+            floor: selectedFloor,
             status: 'CONFIRMED'
         };
 
-        console.log('Creating reservation with data:', requestData);
+        console.log('Creating reservation:', requestData);
 
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
@@ -163,6 +186,9 @@ export async function handleReservationSubmit(event) {
             console.log('Storing reservation in cache:', reservation);
             reservationsCache.set(data.reservationId, reservation);
 
+            // Update floor occupancy
+            floorOccupancy[selectedFloor].add(nextSpot);
+
             try {
                 await sendConfirmationEmail(data.reservationId, user.email, startTime, endTime);
             } catch (emailError) {
@@ -173,6 +199,7 @@ export async function handleReservationSubmit(event) {
         form.reset();
         showSuccessMessage('Reservation created successfully! Check your email for confirmation.');
         await loadUserReservations();
+        updateParkingStatus(selectedFloor); // Update stats for the selected floor
         
     } catch (error) {
         console.error('Reservation error:', error);
@@ -183,6 +210,7 @@ export async function handleReservationSubmit(event) {
         submitButton.innerHTML = 'Make Reservation';
     }
 }
+
 export async function cancelReservation(reservationId) {
     try {
         const user = getCurrentUser();
@@ -190,6 +218,11 @@ export async function cancelReservation(reservationId) {
             console.log('No authenticated user');
             redirectToLogin();
             return false;
+        }
+
+        const reservation = reservationsCache.get(reservationId);
+        if (!reservation) {
+            throw new Error('Reservation not found');
         }
 
         const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
@@ -217,9 +250,13 @@ export async function cancelReservation(reservationId) {
             throw new Error('Failed to cancel reservation');
         }
 
+        // Remove from floor occupancy
+        floorOccupancy[reservation.floor].delete(reservation.spotNumber);
         reservationsCache.delete(reservationId);
+        
         showSuccessMessage('Reservation cancelled successfully!');
         await loadUserReservations();
+        updateParkingStatus(reservation.floor); // Update stats for the affected floor
         return true;
     } catch (error) {
         console.error('Error cancelling reservation:', error);
@@ -233,7 +270,6 @@ export async function cancelReservation(reservationId) {
         }
     }
 }
-
 export async function loadUserReservations() {
     try {
         const user = getCurrentUser();
@@ -264,6 +300,7 @@ export async function loadUserReservations() {
         const data = await response.json();
         let reservations = Array.isArray(data) ? data : [];
         
+        // Filter active reservations
         reservations = reservations.filter(reservation => 
             (reservation.userId === user.sub || reservation.userEmail === user.email) &&
             reservation.status !== 'CANCELLED'
@@ -271,21 +308,26 @@ export async function loadUserReservations() {
 
         console.log('Loaded reservations:', reservations);
 
-        // Update cache with complete reservation data
+        // Clear floor occupancy tracking
+        FLOORS.forEach(floor => floorOccupancy[floor].clear());
+
+        // Update cache and floor occupancy
         reservationsCache.clear();
         reservations.forEach(reservation => {
-            if (!reservation.floor || !reservation.spotNumber) {
-                // Handle legacy reservations
-                reservation.floor = 'P1';
-                reservation.spotNumber = 1;
-            }
             reservationsCache.set(reservation.reservationId, reservation);
+            if (reservation.floor && reservation.spotNumber) {
+                floorOccupancy[reservation.floor].add(reservation.spotNumber);
+            }
         });
 
-        // Update all UI elements
+        // Update UI
         updateReservationTables(reservations);
         updateReservationStatistics(reservations);
-        updateParkingStatus(reservations);
+        
+        // Update parking status for all floors
+        FLOORS.forEach(floor => {
+            updateParkingStatus(floor);
+        });
         
         saveToLocalStorage('userReservations', reservations);
         
@@ -297,36 +339,43 @@ export async function loadUserReservations() {
     }
 }
 
-function updateParkingStatus(reservations) {
+function updateParkingStatus(selectedFloor) {
     const now = new Date();
     
-    const activeReservations = reservations.filter(reservation => {
-        const startTime = new Date(reservation.startTime);
-        const endTime = new Date(reservation.endTime);
-        return startTime <= now && 
-               endTime > now && 
-               reservation.status === 'CONFIRMED';
-    });
+    // Get active reservations for the selected floor
+    const floorReservations = Array.from(reservationsCache.values())
+        .filter(r => 
+            r.floor === selectedFloor &&
+            r.status === 'CONFIRMED' &&
+            new Date(r.startTime) <= now &&
+            new Date(r.endTime) > now
+        );
 
-    const occupiedSpaces = activeReservations.length;
-    const availableSpaces = TOTAL_SPOTS - occupiedSpaces;
-    const occupancyRate = Math.round((occupiedSpaces / TOTAL_SPOTS) * 100);
+    const occupiedSpaces = floorReservations.length;
+    const availableSpaces = SPOTS_PER_FLOOR - occupiedSpaces;
+    const occupancyRate = Math.round((occupiedSpaces / SPOTS_PER_FLOOR) * 100);
 
-    console.log('Updating parking status:', {
-        total: TOTAL_SPOTS,
+    console.log(`Updating status for floor ${selectedFloor}:`, {
         occupied: occupiedSpaces,
         available: availableSpaces,
         rate: occupancyRate
     });
 
-    document.getElementById('availableSpaces').textContent = availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = occupiedSpaces;
+    // Update UI elements with floor-specific information
+    document.getElementById('availableSpaces').textContent = `${availableSpaces}`;
+    document.getElementById('occupiedSpaces').textContent = `${occupiedSpaces}`;
     document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
     
     const occupancyBar = document.getElementById('occupancyBar');
     if (occupancyBar) {
         occupancyBar.style.width = `${occupancyRate}%`;
         occupancyBar.setAttribute('aria-valuenow', occupancyRate);
+    }
+
+    // Add floor indicator to the stats
+    const statsTitle = document.querySelector('.status-card .card-title');
+    if (statsTitle) {
+        statsTitle.textContent = `Parking Status - Floor ${selectedFloor}`;
     }
 
     document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
@@ -361,7 +410,6 @@ function updateTable(tableId, reservations, includeActions) {
         .forEach(reservation => {
             const row = document.createElement('tr');
             const spotDisplay = `${reservation.floor}-${reservation.spotNumber}`;
-            console.log('Creating row with spot:', spotDisplay);
 
             row.innerHTML = `
                 <td>${formatDateTime(reservation.startTime)}</td>
@@ -492,9 +540,28 @@ function startPeriodicUpdates() {
     }, 60000);
 }
 
-// Debug function to log cache state
-function logCacheState() {
-    console.log('Current reservations cache:', Array.from(reservationsCache.values()));
+// Function to update stats when floor selection changes
+function handleFloorSelection(event) {
+    const selectedFloor = event.target.value;
+    if (selectedFloor) {
+        updateParkingStatus(selectedFloor);
+    }
+}
+
+// Initialize floor selection handlers
+function initializeFloorSelectors() {
+    const floorSelects = document.querySelectorAll('#floorSelect, #floorSelectReservations');
+    floorSelects.forEach(select => {
+        select.addEventListener('change', handleFloorSelection);
+    });
+}
+
+// Debug function to log floor occupancy
+function logFloorOccupancy() {
+    console.log('Current floor occupancy:', {
+        ...floorOccupancy,
+        totalReservations: reservationsCache.size
+    });
 }
 
 // Initialize event listeners
@@ -502,8 +569,16 @@ window.cancelReservation = cancelReservation;
 
 document.addEventListener('DOMContentLoaded', () => {
     initializeReservationSystem();
+    initializeFloorSelectors();
+    
+    // Set initial floor stats if a floor is selected
+    const defaultFloorSelect = document.getElementById('floorSelect');
+    if (defaultFloorSelect && defaultFloorSelect.value) {
+        updateParkingStatus(defaultFloorSelect.value);
+    }
+
     // Add debug logging
-    setInterval(logCacheState, 30000); // Log cache state every 30 seconds
+    setInterval(logFloorOccupancy, 30000);
 });
 
 export { reservationsCache };
