@@ -4,7 +4,6 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
 
 let reservationsCache = new Map();
-let lastAssignedSpot = 0;
 const TOTAL_SPOTS = 6; // Total spots for entire garage
 
 export function initializeReservationSystem() {
@@ -48,7 +47,6 @@ function handleStartTimeChange(event) {
 function convertToEST(date) {
     return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
 }
-
 export async function handleReservationSubmit(event) {
     event.preventDefault();
     
@@ -95,8 +93,8 @@ export async function handleReservationSubmit(event) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
-        // Check current reservations for the time period
-        const overlappingReservations = Array.from(reservationsCache.values())
+        // Check available spots
+        const currentReservations = Array.from(reservationsCache.values())
             .filter(r => {
                 const rStart = new Date(r.startTime);
                 const rEnd = new Date(r.endTime);
@@ -106,13 +104,22 @@ export async function handleReservationSubmit(event) {
                         (startTime <= rStart && endTime >= rEnd));
             });
 
-        if (overlappingReservations.length >= TOTAL_SPOTS) {
+        if (currentReservations.length >= TOTAL_SPOTS) {
             throw new Error('No parking spots available for the selected time period');
         }
 
-        // Get next spot number
-        lastAssignedSpot = (lastAssignedSpot % TOTAL_SPOTS) + 1;
-        const nextSpot = lastAssignedSpot;
+        // Get next spot number (1-6)
+        const usedSpots = new Set(currentReservations.map(r => r.spotNumber));
+        let nextSpot;
+        for (let i = 1; i <= TOTAL_SPOTS; i++) {
+            if (!usedSpots.has(i)) {
+                nextSpot = i;
+                break;
+            }
+        }
+        if (!nextSpot) {
+            throw new Error('No parking spots available');
+        }
 
         const requestData = {
             startTime: startTime.toISOString(),
@@ -123,7 +130,9 @@ export async function handleReservationSubmit(event) {
             floor: floorSelect.value,
             status: 'CONFIRMED'
         };
-        
+
+        console.log('Creating reservation with data:', requestData);
+
         const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
             method: 'POST',
             headers: {
@@ -151,6 +160,7 @@ export async function handleReservationSubmit(event) {
                 ...requestData,
                 reservationId: data.reservationId
             };
+            console.log('Storing reservation in cache:', reservation);
             reservationsCache.set(data.reservationId, reservation);
 
             try {
@@ -173,7 +183,6 @@ export async function handleReservationSubmit(event) {
         submitButton.innerHTML = 'Make Reservation';
     }
 }
-
 export async function cancelReservation(reservationId) {
     try {
         const user = getCurrentUser();
@@ -260,9 +269,16 @@ export async function loadUserReservations() {
             reservation.status !== 'CANCELLED'
         );
 
+        console.log('Loaded reservations:', reservations);
+
         // Update cache with complete reservation data
         reservationsCache.clear();
         reservations.forEach(reservation => {
+            if (!reservation.floor || !reservation.spotNumber) {
+                // Handle legacy reservations
+                reservation.floor = 'P1';
+                reservation.spotNumber = 1;
+            }
             reservationsCache.set(reservation.reservationId, reservation);
         });
 
@@ -295,6 +311,13 @@ function updateParkingStatus(reservations) {
     const occupiedSpaces = activeReservations.length;
     const availableSpaces = TOTAL_SPOTS - occupiedSpaces;
     const occupancyRate = Math.round((occupiedSpaces / TOTAL_SPOTS) * 100);
+
+    console.log('Updating parking status:', {
+        total: TOTAL_SPOTS,
+        occupied: occupiedSpaces,
+        available: availableSpaces,
+        rate: occupancyRate
+    });
 
     document.getElementById('availableSpaces').textContent = availableSpaces;
     document.getElementById('occupiedSpaces').textContent = occupiedSpaces;
@@ -331,13 +354,15 @@ function updateTable(tableId, reservations, includeActions) {
         return;
     }
 
+    console.log(`Updating table ${tableId} with reservations:`, reservations);
+
     reservations
         .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
         .forEach(reservation => {
             const row = document.createElement('tr');
-            const spotDisplay = reservation.floor && reservation.spotNumber ? 
-                `${reservation.floor}-${reservation.spotNumber}` : 'N/A';
-            
+            const spotDisplay = `${reservation.floor}-${reservation.spotNumber}`;
+            console.log('Creating row with spot:', spotDisplay);
+
             row.innerHTML = `
                 <td>${formatDateTime(reservation.startTime)}</td>
                 <td>${formatDateTime(reservation.endTime)}</td>
@@ -357,7 +382,6 @@ function updateTable(tableId, reservations, includeActions) {
             table.appendChild(row);
         });
 }
-
 function updateReservationStatistics(reservations) {
     const now = new Date();
     const active = reservations.filter(r => 
@@ -468,8 +492,18 @@ function startPeriodicUpdates() {
     }, 60000);
 }
 
+// Debug function to log cache state
+function logCacheState() {
+    console.log('Current reservations cache:', Array.from(reservationsCache.values()));
+}
+
+// Initialize event listeners
 window.cancelReservation = cancelReservation;
 
-document.addEventListener('DOMContentLoaded', initializeReservationSystem);
+document.addEventListener('DOMContentLoaded', () => {
+    initializeReservationSystem();
+    // Add debug logging
+    setInterval(logCacheState, 30000); // Log cache state every 30 seconds
+});
 
 export { reservationsCache };
