@@ -102,7 +102,7 @@ class ParkingDashboard {
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                labels: [],
                 datasets: [{
                     label: 'Average Occupancy Rate',
                     data: [],
@@ -118,7 +118,10 @@ class ParkingDashboard {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Parking Occupancy - Daily View'
+                        text: 'Parking Occupancy - Daily View',
+                        font: {
+                            size: 16
+                        }
                     }
                 },
                 scales: {
@@ -127,13 +130,27 @@ class ParkingDashboard {
                         max: 100,
                         title: {
                             display: true,
-                            text: 'Occupancy Rate (%)'
+                            text: 'Occupancy Rate (%)',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            callback: value => `${value}%`
                         }
                     },
                     x: {
                         title: {
                             display: true,
-                            text: 'Hour of Day'
+                            text: 'Hour of Day',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
                         }
                     }
                 }
@@ -145,23 +162,40 @@ class ParkingDashboard {
         try {
             this.showLoading();
             this.updateDateTime();
-
+    
             const response = await fetch(`${this.apiEndpoint}?timeframe=${this.timeframe}`);
             if (!response.ok) {
                 throw new Error('Failed to fetch dashboard data');
             }
             
             const responseData = await response.json();
-            console.log('API Response:', responseData); // Debug log
-
-            this.chart.data.labels = responseData.labels;
-            this.chart.data.datasets[0].data = responseData.data;
+            const parsedData = typeof responseData.body === 'string' 
+                ? JSON.parse(responseData.body) 
+                : responseData;
+    
+            // Update chart data
+            this.chart.data.labels = parsedData.labels;
+            this.chart.data.datasets[0].data = parsedData.data;
+    
+            // Update x-axis label and format based on timeframe
+            this.chart.options.scales.x.title.text = this.timeframe === 'daily' 
+                ? 'Hour of Day' 
+                : 'Day of Week';
+    
+            // Update chart title
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
+    
+            // Force display of all labels
+            this.chart.options.scales.x.ticks = {
+                autoSkip: false,
+                maxRotation: 45,
+                minRotation: 45
+            };
             
             this.chart.update();
             this.hideLoading();
-
+    
         } catch (error) {
             console.error('Data loading error:', error);
             this.showError('Failed to load dashboard data');
