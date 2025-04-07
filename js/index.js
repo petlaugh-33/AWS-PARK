@@ -5,7 +5,6 @@ import { getCurrentUser, redirectToLogin } from './auth.js';
 import './dashboard.js';
 
 // Make necessary functions available globally
-window.loadHistoricalData = loadHistoricalData;
 window.cancelReservation = cancelReservation;
 window.handleReservationSubmit = handleReservationSubmit;
 
