@@ -172,8 +172,10 @@ class ParkingDashboard {
             const responseData = await response.json();
             console.log('Raw API Response:', responseData);
     
-            // Parse the response body
-            const parsedData = JSON.parse(responseData.body);
+            // Parse the response body if it's a string
+            const parsedData = typeof responseData.body === 'string' 
+                ? JSON.parse(responseData.body) 
+                : responseData.body;
             console.log('Parsed Chart Data:', parsedData);
     
             // Update chart data
@@ -194,7 +196,6 @@ class ParkingDashboard {
                         maxRotation: 45
                     }
                 };
-                console.log('Weekly View Labels:', parsedData.labels);
             } else {
                 this.chart.options.scales.x = {
                     type: 'category',
