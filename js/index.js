@@ -154,6 +154,30 @@ function initializeApp() {
     initializeReservationSystem();
     
     const ws = initializeWebSocket();
+    ws.addEventListener('open', () => {
+        console.log('WebSocket connection established');
+    });
+
+    ws.addEventListener('message', (event) => {
+        console.log('WebSocket message received:', event.data);
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'status_update') {
+                console.log('Status update received:', data);
+                updateStatus(data);
+            }
+        } catch (error) {
+            console.error('Error processing WebSocket message:', error);
+        }
+    });
+
+    ws.addEventListener('error', (error) => {
+        console.error('WebSocket error:', error);
+    });
+
+    ws.addEventListener('close', () => {
+        console.log('WebSocket connection closed');
+    });
     
     const initialState = {
         availableSpaces: 6,
@@ -163,7 +187,8 @@ function initializeApp() {
         lastUpdated: new Date().toISOString(),
         floor: 'P1'
     };
-    
+    // Add logging here
+    console.log('Setting initial state:', initialState);
     updateStatus(initialState);
     updateUserInterface(user);
     
