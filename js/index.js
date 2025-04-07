@@ -152,8 +152,12 @@ function initializeApp() {
 
     initializeStorage();
     initializeReservationSystem();
+
+    // Get the authentication token
+    const idToken = localStorage.getItem('idToken');
+    console.log('Token available:', !!idToken); // Log if token exists
     
-    const ws = initializeWebSocket();
+    const ws = initializeWebSocket(idToken);
     ws.addEventListener('open', () => {
         console.log('WebSocket connection established');
     });

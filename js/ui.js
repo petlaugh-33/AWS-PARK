@@ -98,7 +98,13 @@ function updateLastUpdated(timestamp) {
 
 export function initializeWebSocket() {
     console.log('Initializing WebSocket connection...');
-    const ws = new WebSocket('wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production');
+    
+    // Get the authentication token
+    const idToken = localStorage.getItem('idToken');
+    const wsUrl = `wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production?token=${idToken}`;
+    
+    console.log('Connecting to WebSocket with auth token...');
+    const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
         console.log('WebSocket connected');
@@ -109,13 +115,19 @@ export function initializeWebSocket() {
         console.log('WebSocket message received:', event.data);
         try {
             const message = JSON.parse(event.data);
-            if (message.type === 'status_update') handleStatusUpdate(message);
+            if (message.type === 'status_update') {
+                console.log('Processing status update:', message);
+                handleStatusUpdate(message);
+            }
         } catch (error) {
             console.error('Error processing WebSocket message:', error);
         }
     };
     
-    ws.onerror = (error) => console.error('WebSocket error:', error);
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        console.log('WebSocket state:', ws.readyState);
+    };
     
     ws.onclose = () => {
         console.log('WebSocket closed. Attempting to reconnect...');
@@ -123,7 +135,10 @@ export function initializeWebSocket() {
     };
 
     setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) sendHeartbeat(ws);
+        if (ws.readyState === WebSocket.OPEN) {
+            console.log('Sending heartbeat...');
+            sendHeartbeat(ws);
+        }
     }, 30000);
 
     return ws;
