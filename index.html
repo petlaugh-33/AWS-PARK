@@ -29,7 +29,6 @@
             margin-top: 2rem;
         }
 
-        /* Floor status card styles */
         .floor-card {
             border-radius: 8px;
             transition: all 0.3s ease;
@@ -46,19 +45,29 @@
             border-radius: 8px 8px 0 0;
         }
 
-        .occupancy-low { background-color: #28a745; }
-        .occupancy-medium { background-color: #ffc107; }
-        .occupancy-high { background-color: #dc3545; }
+        .floor-stats {
+            padding: 15px;
+        }
 
-        .progress {
-            height: 10px;
-            margin-top: 10px;
+        .stats-label {
+            font-size: 0.9rem;
+            color: #666;
         }
 
         .stats-value {
             font-size: 1.5rem;
             font-weight: bold;
+            color: #333;
         }
+
+        .progress {
+            height: 8px;
+            margin-top: 10px;
+        }
+
+        .progress-bar.low { background-color: #28a745; }
+        .progress-bar.medium { background-color: #ffc107; }
+        .progress-bar.high { background-color: #dc3545; }
 
         /* Dashboard styles */
         #dashboard-container {
@@ -72,10 +81,15 @@
             width: 3rem;
             height: 3rem;
         }
+
+        .reservation-form {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
-    <!-- Auth Check Script -->
     <script type="module">
         import { getCurrentUser } from './js/auth.js';
 
@@ -95,7 +109,6 @@
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
-        <!-- Navigation content remains the same -->
         <div class="container-fluid">
             <a class="navbar-brand" href="#">AmazonPark</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
@@ -139,12 +152,11 @@
             </div>
         </div>
     </nav>
-
     <!-- Main Container -->
     <div class="container py-4">
         <!-- Home Page -->
         <div id="homePage">
-            <!-- Floor Status Overview -->
+            <!-- Parking Status by Floor -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="card-title mb-4">Parking Status by Floor</h5>
@@ -170,6 +182,7 @@
                                 </div>
                             </div>
                         </div>
+
                         <!-- P2 Floor Card -->
                         <div class="col-md-3 mb-3">
                             <div class="floor-card shadow-sm" data-floor="P2">
@@ -278,7 +291,6 @@
                     </form>
                 </div>
             </div>
-
             <!-- Reservations Table Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
@@ -302,6 +314,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Reservation Stats Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
@@ -316,7 +329,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- Analysis Page -->

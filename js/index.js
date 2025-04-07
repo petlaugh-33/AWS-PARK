@@ -10,8 +10,8 @@ window.cancelReservation = cancelReservation;
 window.handleReservationSubmit = handleReservationSubmit;
 
 // Constants for parking configuration
-const FLOORS = ['P1', 'P2', 'P3', 'P4'];
 const SPOTS_PER_FLOOR = 6;
+const FLOORS = ['P1', 'P2', 'P3', 'P4'];
 
 function checkAuthentication() {
     console.log('Checking authentication...');
@@ -31,16 +31,13 @@ function updateUserInterface(user) {
         userEmailElement.textContent = user.email;
     }
 
-    // Initialize floor selection handlers
     setupFloorSelectionHandlers();
-
     loadUserReservations()
-        .then(reservations => {
-            console.log(`Loaded ${reservations.length} reservations for user`);
-            updateAllFloorStats();
+        .then(() => {
+            console.log('Initial reservations loaded');
         })
         .catch(error => {
-            console.error('Error loading reservations:', error);
+            console.error('Error loading initial reservations:', error);
         });
 }
 
@@ -54,12 +51,13 @@ function setupFloorSelectionHandlers() {
 function handleFloorSelection(event) {
     const selectedFloor = event.target.value;
     if (selectedFloor) {
+        console.log(`Floor selected: ${selectedFloor}`);
         highlightSelectedFloor(selectedFloor);
-        updateSelectedFloorDisplay(selectedFloor);
     }
 }
 
 function highlightSelectedFloor(selectedFloor) {
+    // Remove highlight from all floor cards
     FLOORS.forEach(floor => {
         const card = document.querySelector(`[data-floor="${floor}"]`);
         if (card) {
@@ -67,6 +65,7 @@ function highlightSelectedFloor(selectedFloor) {
         }
     });
 
+    // Add highlight to selected floor
     const selectedCard = document.querySelector(`[data-floor="${selectedFloor}"]`);
     if (selectedCard) {
         selectedCard.classList.add('border-primary', 'shadow');
@@ -75,119 +74,68 @@ function highlightSelectedFloor(selectedFloor) {
 
 function setupTabNavigation() {
     console.log('Setting up tab navigation...');
-    const homeTab = document.getElementById('homeTab');
-    const analysisTab = document.getElementById('analysisTab');
-    const reservationsTab = document.getElementById('ReservationsTab');
+    const tabs = {
+        homeTab: document.getElementById('homeTab'),
+        analysisTab: document.getElementById('analysisTab'),
+        ReservationsTab: document.getElementById('ReservationsTab')
+    };
 
-    if (homeTab && analysisTab && reservationsTab) {
-        homeTab.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Home tab clicked');
-            switchTab('homeTab');
-        });
+    Object.entries(tabs).forEach(([id, element]) => {
+        if (element) {
+            element.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log(`${id} clicked`);
+                switchTab(id);
+            });
+        } else {
+            console.error(`Tab ${id} not found`);
+        }
+    });
 
-        analysisTab.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Analysis tab clicked');
-            switchTab('analysisTab');
-        });
-
-        reservationsTab.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Reservations tab clicked');
-            switchTab('ReservationsTab');
-        });
-
-        // Set initial tab
-        switchTab('homeTab');
-    }
+    // Set initial tab
+    switchTab('homeTab');
 }
 
 function switchTab(tabId) {
-    console.log('Switching to tab:', tabId);
+    console.log(`Switching to tab: ${tabId}`);
     
-    // Hide all pages
+    // Get all pages
     const pages = {
-        'homeTab': 'homePage',
-        'analysisTab': 'analysisPage',
-        'ReservationsTab': 'ReservationsPage'
+        homeTab: document.getElementById('homePage'),
+        analysisTab: document.getElementById('analysisPage'),
+        ReservationsTab: document.getElementById('ReservationsPage')
     };
-    
-    Object.values(pages).forEach(pageId => {
-        const page = document.getElementById(pageId);
+
+    // Hide all pages
+    Object.values(pages).forEach(page => {
         if (page) {
             page.style.display = 'none';
         }
     });
 
     // Show selected page
-    const pageToShow = document.getElementById(pages[tabId]);
-    if (pageToShow) {
-        pageToShow.style.display = 'block';
-    }
-
-    // Handle specific tab actions
-    if (tabId === 'ReservationsTab') {
-        console.log('Loading reservations for My Reservations tab');
-        loadUserReservations();
-    } else if (tabId === 'homeTab') {
-        console.log('Updating floor stats for Home tab');
-        updateAllFloorStats();
+    const selectedPage = pages[tabId];
+    if (selectedPage) {
+        selectedPage.style.display = 'block';
+        
+        // Perform tab-specific actions
+        if (tabId === 'ReservationsTab') {
+            console.log('Loading reservations for My Reservations tab');
+            loadUserReservations();
+        } else if (tabId === 'homeTab') {
+            console.log('Updating floor stats for Home tab');
+            loadUserReservations();
+        }
     }
 
     // Update active state of tabs
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
+    
     const activeTab = document.getElementById(tabId);
     if (activeTab) {
         activeTab.classList.add('active');
-    }
-}
-
-function updateAllFloorStats() {
-    FLOORS.forEach(floor => {
-        const stats = calculateFloorStats(floor);
-        updateFloorStatsDisplay(floor, stats);
-    });
-}
-
-function calculateFloorStats(floor) {
-    const now = new Date();
-    const reservations = Array.from(document.querySelectorAll(`[data-floor="${floor}"] .reservation-row`));
-    
-    const occupied = reservations.filter(row => {
-        const startTime = new Date(row.dataset.startTime);
-        const endTime = new Date(row.dataset.endTime);
-        return startTime <= now && endTime > now;
-    }).length;
-
-    return {
-        available: SPOTS_PER_FLOOR - occupied,
-        occupied: occupied,
-        occupancyRate: Math.round((occupied / SPOTS_PER_FLOOR) * 100)
-    };
-}
-
-function updateFloorStatsDisplay(floor, stats) {
-    const elements = {
-        available: document.getElementById(`${floor}-availableSpaces`),
-        occupied: document.getElementById(`${floor}-occupiedSpaces`),
-        progress: document.getElementById(`${floor}-occupancyBar`)
-    };
-
-    if (elements.available) elements.available.textContent = stats.available;
-    if (elements.occupied) elements.occupied.textContent = stats.occupied;
-    
-    if (elements.progress) {
-        elements.progress.style.width = `${stats.occupancyRate}%`;
-        elements.progress.setAttribute('aria-valuenow', stats.occupancyRate);
-        
-        // Update progress bar color based on occupancy
-        elements.progress.className = 'progress-bar ' + 
-            (stats.occupancyRate >= 80 ? 'bg-danger' :
-             stats.occupancyRate >= 50 ? 'bg-warning' : 
-             'bg-success');
     }
 }
 
@@ -213,7 +161,6 @@ function initializeApp() {
     setInterval(cleanupStorageData, 60 * 60 * 1000);
 
     setupTabNavigation();
-    updateAllFloorStats();
 
     console.log('Application initialization complete.');
 }
@@ -248,8 +195,12 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 
+// Make functions available globally if needed
+window.switchTab = switchTab;
+
 export {
     initializeApp,
     handleError,
-    checkAuthentication
+    checkAuthentication,
+    switchTab
 };
