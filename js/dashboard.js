@@ -205,7 +205,11 @@ class ParkingDashboard {
                         font: { weight: 'bold' }
                     },
                     ticks: {
-                        callback: value => value
+                        callback: function(value, index) {
+                            return `${index}:00`;
+                        },
+                        autoSkip: false,
+                        maxRotation: 45
                     }
                 };
             }
