@@ -1,482 +1,543 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmazonPark</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/styles.css">
-    <style>
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+import { RESERVATIONS_API_ENDPOINT, RESERVATION_REFRESH_INTERVAL, CONFIRMATION_ENDPOINT } from './constants.js';
+import { showSuccessMessage, showErrorMessage } from './ui.js';
+import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
+import { getCurrentUser, redirectToLogin } from './auth.js';
+
+// Constants for floor management
+const SPOTS_PER_FLOOR = 6;
+const FLOORS = ['P1', 'P2', 'P3', 'P4'];
+
+// Cache and state management
+let reservationsCache = new Map();
+const floorStats = {
+    P1: { available: SPOTS_PER_FLOOR, occupied: 0 },
+    P2: { available: SPOTS_PER_FLOOR, occupied: 0 },
+    P3: { available: SPOTS_PER_FLOOR, occupied: 0 },
+    P4: { available: SPOTS_PER_FLOOR, occupied: 0 }
+};
+
+export function initializeReservationSystem() {
+    try {
+        console.log('Initializing reservation system...');
         
-        .container {
-            flex: 1;
+        // Initialize forms
+        const reservationForms = ['reservationForm', 'myReservationsForm'];
+        reservationForms.forEach(formId => {
+            const form = document.getElementById(formId);
+            if (form) {
+                const startTimeInput = form.querySelector('[id^="startTime"]');
+                const endTimeInput = form.querySelector('[id^="endTime"]');
+                const floorSelect = form.querySelector('[id*="floorSelect"]');
+                
+                if (startTimeInput && endTimeInput) {
+                    startTimeInput.addEventListener('change', handleStartTimeChange);
+                    form.addEventListener('submit', handleReservationSubmit);
+                }
+
+                if (floorSelect) {
+                    floorSelect.addEventListener('change', (e) => {
+                        const selectedFloor = e.target.value;
+                        console.log(`Floor selected: ${selectedFloor}`);
+                        updateFloorStats(selectedFloor);
+                    });
+                }
+            }
+        });
+
+        loadUserReservations();
+        startReservationRefresh();
+        startPeriodicUpdates();
+
+        return true;
+    } catch (error) {
+        console.error('Error initializing reservation system:', error);
+        return false;
+    }
+}
+
+function handleStartTimeChange(event) {
+    const startTime = event.target.value;
+    if (startTime) {
+        const form = event.target.closest('form');
+        const endTimeInput = form.querySelector('[id^="endTime"]');
+        if (endTimeInput) {
+            endTimeInput.min = startTime;
+        }
+    }
+}
+
+function convertToEST(date) {
+    return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+}
+
+async function getNextAvailableSpotForFloor(floor, startTime, endTime) {
+    console.log(`Finding available spot for floor ${floor}`);
+    
+    // Get current reservations for this floor during the specified time period
+    const floorReservations = Array.from(reservationsCache.values())
+        .filter(r => 
+            r.floor === floor && 
+            r.status === 'CONFIRMED' &&
+            new Date(r.startTime) < new Date(endTime) &&
+            new Date(r.endTime) > new Date(startTime)
+        );
+
+    if (floorReservations.length >= SPOTS_PER_FLOOR) {
+        throw new Error(`No spots available on floor ${floor} for the selected time period`);
+    }
+
+    // Find first available spot number
+    const usedSpots = new Set(floorReservations.map(r => r.spotNumber));
+    for (let i = 1; i <= SPOTS_PER_FLOOR; i++) {
+        if (!usedSpots.has(i)) {
+            console.log(`Selected spot ${i} on floor ${floor}`);
+            return i;
+        }
+    }
+
+    throw new Error(`No spots available on floor ${floor}`);
+}
+export async function handleReservationSubmit(event) {
+    event.preventDefault();
+    console.log('Handling reservation submit');
+    
+    const user = getCurrentUser();
+    if (!user) {
+        console.log('No authenticated user');
+        return;
+    }
+
+    const form = event.target;
+    const formId = form.id;
+    
+    const floorSelect = formId === 'reservationForm' ? 
+        document.getElementById('floorSelect') : 
+        document.getElementById('floorSelectReservations');
+
+    const startTimeInput = formId === 'reservationForm' ? 
+        document.getElementById('startTime') : 
+        document.getElementById('startTimeReservations');
+    
+    const endTimeInput = formId === 'reservationForm' ? 
+        document.getElementById('endTime') : 
+        document.getElementById('endTimeReservations');
+
+    if (!floorSelect || !floorSelect.value) {
+        showErrorMessage('Please select a floor');
+        return;
+    }
+
+    const selectedFloor = floorSelect.value;
+    const startTime = convertToEST(new Date(startTimeInput.value));
+    const endTime = convertToEST(new Date(endTimeInput.value));
+
+    if (!validateReservationTimes(startTime, endTime)) {
+        return;
+    }
+    
+    try {
+        console.log(`Creating reservation for floor ${selectedFloor}`);
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+
+        // Get next available spot for the selected floor
+        const nextSpot = await getNextAvailableSpotForFloor(selectedFloor, startTime, endTime);
+
+        const requestData = {
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            userId: user.sub,
+            userEmail: user.email,
+            floor: selectedFloor,
+            spotNumber: nextSpot,
+            status: 'CONFIRMED'
+        };
+
+        console.log('Creating reservation with data:', requestData);
+
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
+            },
+            body: JSON.stringify(requestData),
+            credentials: 'include'
+        });
+        
+        if (response.status === 401) {
+            redirectToLogin();
+            return;
         }
 
-        .footer {
-            background-color: #232f3e;
-            color: white;
-            padding: 1rem 0;
-            position: relative;
-            margin-top: 2rem;
+        if (!response.ok) {
+            throw new Error('Failed to create reservation');
         }
 
-        .floor-card {
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
+        const data = await response.json();
 
-        .floor-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
+        if (data.reservationId) {
+            const reservation = {
+                ...requestData,
+                reservationId: data.reservationId
+            };
+            
+            console.log('Storing reservation:', reservation);
+            reservationsCache.set(data.reservationId, reservation);
 
-        .floor-header {
-            font-size: 1.2rem;
-            font-weight: bold;
-            padding: 10px;
-            border-radius: 8px 8px 0 0;
-        }
+            // Update floor stats
+            updateFloorStats(selectedFloor);
 
-        .progress {
-            height: 8px;
-            margin-top: 10px;
-        }
-
-        .progress-bar.low { background-color: #28a745; }
-        .progress-bar.medium { background-color: #ffc107; }
-        .progress-bar.high { background-color: #dc3545; }
-
-        /* Dashboard styles */
-        #dashboard-container {
-            height: 800px;
-            position: relative;
-            background: #fff;
-            margin-bottom: 20px;
-        }
-
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-
-        .stats-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-    <script type="module">
-        import { getCurrentUser } from './js/auth.js';
-
-        function checkAuth() {
-            console.log('Checking authentication...');
-            const user = getCurrentUser();
-            if (!user) {
-                console.log('No authenticated user found. Redirecting to login.');
-                window.location.href = 'auth.html';
-            } else {
-                console.log('User authenticated:', user);
+            try {
+                await sendConfirmationEmail(data.reservationId, user.email, startTime, endTime);
+            } catch (emailError) {
+                console.error('Email confirmation error:', emailError);
             }
         }
-
-        checkAuth();
-    </script>
-
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">AmazonPark</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
-                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#" id="homeTab">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="analysisTab">Analysis</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="ReservationsTab">My Reservations</a>
-                    </li>
-                </ul>
-                <!-- User Section -->
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item" id="userSection">
-                        <script type="module">
-                            import { getCurrentUser, logoutUser } from './js/auth.js';
-                            
-                            const user = getCurrentUser();
-                            if (user) {
-                                document.getElementById('userSection').innerHTML = `
-                                    <span class="nav-link">
-                                        <span class="text-light me-3">${user.email}</span>
-                                        <button class="btn btn-outline-light btn-sm" onclick="handleLogout()">Logout</button>
-                                    </span>
-                                `;
-                            }
-
-                            window.handleLogout = () => {
-                                logoutUser();
-                            };
-                        </script>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <!-- Main Container -->
-    <div class="container py-4">
-        <!-- Home Page -->
-        <div id="homePage">
-            <!-- Parking Status by Floor -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title mb-4">Parking Status by Floor</h5>
-                    <div class="row">
-                        <!-- P1 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P1">
-                                <div class="floor-header bg-primary text-white">Floor P1</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P1-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P1-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P1-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- P2 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P2">
-                                <div class="floor-header bg-primary text-white">Floor P2</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P2-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P2-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P2-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- P3 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P3">
-                                <div class="floor-header bg-primary text-white">Floor P3</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P3-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P3-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P3-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- P4 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P4">
-                                <div class="floor-header bg-primary text-white">Floor P4</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P4-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P4-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P4-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-muted small mt-3">
-                        Last updated: <span id="lastUpdated">--</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reservation Form Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Parking Reservation</h5>
-                    <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
-                    <form id="reservationForm" class="mb-3">
-                        <div class="row g-3">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Select Floor</label>
-                                <select class="form-control" id="floorSelect" required>
-                                    <option value="">Choose a floor...</option>
-                                    <option value="P1">P1</option>
-                                    <option value="P2">P2</option>
-                                    <option value="P3">P3</option>
-                                    <option value="P4">P4</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Start Time (EST)</label>
-                                <input type="datetime-local" 
-                                       class="form-control" 
-                                       id="startTime" 
-                                       required>
-                                <small class="text-muted">Available hours: 7:00 AM - 11:00 PM EST</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">End Time (EST)</label>
-                                <input type="datetime-local" class="form-control" id="endTime" required>
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Make Reservation</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Reservations Table Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">My Reservations</h5>
-                    <div id="reservationsError" class="alert alert-danger" style="display:none;"></div>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Start Time</th>
-                                    <th>End Time</th>
-                                    <th>Spot</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reservationsTable">
-                                <!-- Reservations will be inserted here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <!-- Reservation Stats Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Reservation Statistics</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p>Active Reservations: <span id="activeReservations" class="badge bg-primary">0</span></p>
-                        </div>
-                        <div class="col-md-6">
-                            <p>Upcoming Reservations: <span id="upcomingReservations" class="badge bg-info">0</span></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analysis Page -->
-        <div id="analysisPage" style="display: none;">
-            <!-- Historical Analysis Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Historical Analysis</h5>
-                    <div id="chartError" class="alert alert-danger" style="display:none;"></div>
-                    <div class="btn-group mb-3">
-                        <button class="btn btn-outline-primary" id="dailyDashboard">Daily</button>
-                        <button class="btn btn-outline-primary" id="weeklyDashboard">Weekly</button>
-                    </div>
-                    <div id="currentDate" class="mb-2"></div>
-                    
-                    <!-- Loading state -->
-                    <div id="dashboard-loading" style="height: 800px; width: 100%;">
-                        <div class="text-center p-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Loading dashboard...</p>
-                        </div>
-                    </div>
         
-                    <!-- Chart container -->
-                    <div id="dashboard-container" style="display:none;">
-                        <canvas id="dashboardCanvas"></canvas>
-                    </div>
-                </div>
-            </div>
+        form.reset();
+        showSuccessMessage(`Reservation created successfully! Your spot is ${selectedFloor}-${nextSpot}`);
+        await loadUserReservations();
+        
+    } catch (error) {
+        console.error('Reservation error:', error);
+        showErrorMessage(error.message || 'Failed to create reservation');
+    } finally {
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Make Reservation';
+    }
+}
 
-            <!-- Time Analysis Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Time Analysis</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p>Time of Day: Peak Hours (7-9 AM, 4-6 PM)</p>
-                            <p>Peak Hours Occupancy: <span class="badge bg-warning">75-92% Occupancy</span></p>
-                        </div>
-                        <div class="col-md-6">
-                            <p>Day of Week: Tuesday</p>
-                            <p>Average Occupancy: <span class="badge bg-info">82% Weekly Avg</span></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+export async function cancelReservation(reservationId) {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            redirectToLogin();
+            return false;
+        }
 
-        <!-- My Reservations Page -->
-        <div id="ReservationsPage" style="display: none;">
-            <!-- Reservation Form Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Make a Reservation</h5>
-                    <div id="myReservationsError" class="alert alert-danger" style="display:none;"></div>
-                    <form id="myReservationsForm" class="mb-3">
-                        <div class="row g-3">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Select Floor</label>
-                                <select class="form-control" id="floorSelectReservations" required>
-                                    <option value="">Choose a floor...</option>
-                                    <option value="P1">P1</option>
-                                    <option value="P2">P2</option>
-                                    <option value="P3">P3</option>
-                                    <option value="P4">P4</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Start Time (EST)</label>
-                                <input type="datetime-local" 
-                                       class="form-control" 
-                                       id="startTimeReservations" 
-                                       required>
-                                <small class="text-muted">Available hours: 7:00 AM - 11:00 PM EST</small>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">End Time (EST)</label>
-                                <input type="datetime-local" class="form-control" id="endTimeReservations" required>
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Make Reservation</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+        const reservation = reservationsCache.get(reservationId);
+        if (!reservation) {
+            throw new Error('Reservation not found');
+        }
 
-            <!-- Upcoming Reservations -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Upcoming Reservations</h5>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Start Time</th>
-                                    <th>End Time</th>
-                                    <th>Spot</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="upcomingReservationsTable">
-                                <!-- Will be populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...';
+        }
 
-            <!-- Past Reservations -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Past Reservations</h5>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Start Time</th>
-                                    <th>End Time</th>
-                                    <th>Spot</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="pastReservationsTable">
-                                <!-- Will be populated dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations/${reservationId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('idToken')}`
+            },
+            credentials: 'include'
+        });
 
-            <!-- Reservation Statistics -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Reservation Statistics</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p>Active Reservations: <span id="activeReservationsCount" class="badge bg-primary">0</span></p>
-                        </div>
-                        <div class="col-md-6">
-                            <p>Upcoming Reservations: <span id="upcomingReservationsCount" class="badge bg-info">0</span></p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        if (response.status === 401) {
+            redirectToLogin();
+            return false;
+        }
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p class="text-center mb-0">&copy; 2025 AmazonPark. All rights reserved.</p>
-        </div>
-    </footer>
+        if (!response.ok) {
+            throw new Error('Failed to cancel reservation');
+        }
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
-            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
-            crossorigin="anonymous"></script>
-    <!-- Main Application JavaScript -->
-    <script type="module" src="js/dashboard.js"></script>
-    <script type="module" src="js/index.js"></script>
-</body>
-</html>
+        // Update floor stats
+        if (reservation.floor) {
+            updateFloorStats(reservation.floor);
+        }
+
+        reservationsCache.delete(reservationId);
+        showSuccessMessage('Reservation cancelled successfully!');
+        await loadUserReservations();
+        return true;
+    } catch (error) {
+        console.error('Error cancelling reservation:', error);
+        showErrorMessage(`Failed to cancel reservation: ${error.message}`);
+        return false;
+    } finally {
+        const button = document.querySelector(`button[onclick="window.cancelReservation('${reservationId}')"]`);
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = 'Cancel';
+        }
+    }
+}
+export async function loadUserReservations() {
+    try {
+        const user = getCurrentUser();
+        if (!user) {
+            console.log('No authenticated user');
+            return [];
+        }
+
+        const idToken = localStorage.getItem("idToken");
+        if (!idToken) {
+            console.error('No idToken found');
+            return [];
+        }
+
+        const response = await fetch(`${RESERVATIONS_API_ENDPOINT}/reservations`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        let reservations = Array.isArray(data) ? data : [];
+        
+        // Filter active reservations
+        reservations = reservations.filter(reservation => 
+            (reservation.userId === user.sub || reservation.userEmail === user.email) &&
+            reservation.status !== 'CANCELLED'
+        );
+
+        console.log('Loaded reservations:', reservations);
+
+        // Update cache and floor stats
+        reservationsCache.clear();
+        // Reset floor stats
+        FLOORS.forEach(floor => {
+            floorStats[floor].available = SPOTS_PER_FLOOR;
+            floorStats[floor].occupied = 0;
+        });
+
+        // Update cache and recalculate floor stats
+        reservations.forEach(reservation => {
+            reservationsCache.set(reservation.reservationId, reservation);
+            if (reservation.floor && reservation.status === 'CONFIRMED') {
+                updateFloorStats(reservation.floor);
+            }
+        });
+
+        // Update all displays
+        updateReservationTables(reservations);
+        updateReservationStatistics(reservations);
+        FLOORS.forEach(updateFloorStats);
+        
+        saveToLocalStorage('userReservations', reservations);
+        
+        return reservations;
+    } catch (error) {
+        console.error('Error loading reservations:', error);
+        showErrorMessage('Failed to load reservations. Please try again later.');
+        return [];
+    }
+}
+
+function updateFloorStats(floor) {
+    const now = new Date();
+    
+    // Get active reservations for this floor
+    const activeReservations = Array.from(reservationsCache.values())
+        .filter(r => 
+            r.floor === floor &&
+            r.status === 'CONFIRMED' &&
+            new Date(r.startTime) <= now &&
+            new Date(r.endTime) > now
+        );
+
+    const occupied = activeReservations.length;
+    const available = SPOTS_PER_FLOOR - occupied;
+    const occupancyRate = Math.round((occupied / SPOTS_PER_FLOOR) * 100);
+
+    console.log(`Updating stats for floor ${floor}:`, { occupied, available, occupancyRate });
+
+    // Update UI elements
+    const availableElement = document.getElementById(`${floor}-availableSpaces`);
+    const occupiedElement = document.getElementById(`${floor}-occupiedSpaces`);
+    const progressBar = document.getElementById(`${floor}-occupancyBar`);
+
+    if (availableElement) availableElement.textContent = available;
+    if (occupiedElement) occupiedElement.textContent = occupied;
+    
+    if (progressBar) {
+        progressBar.style.width = `${occupancyRate}%`;
+        progressBar.setAttribute('aria-valuenow', occupancyRate);
+        
+        // Update color based on occupancy
+        progressBar.className = 'progress-bar ' + 
+            (occupancyRate >= 80 ? 'bg-danger' :
+             occupancyRate >= 50 ? 'bg-warning' : 'bg-success');
+    }
+}
+
+function updateReservationTables(reservations) {
+    const now = new Date();
+    const upcoming = reservations.filter(r => new Date(r.endTime) > now);
+    const past = reservations.filter(r => new Date(r.endTime) <= now);
+
+    updateTable('reservationsTable', upcoming, true);
+    updateTable('upcomingReservationsTable', upcoming, true);
+    updateTable('pastReservationsTable', past, false);
+}
+
+function updateTable(tableId, reservations, includeActions) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+
+    table.innerHTML = '';
+
+    if (reservations.length === 0) {
+        const colspan = includeActions ? 5 : 4;
+        table.innerHTML = `<tr><td colspan="${colspan}" class="text-center">No reservations found</td></tr>`;
+        return;
+    }
+
+    reservations
+        .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
+        .forEach(reservation => {
+            const row = document.createElement('tr');
+            const spotDisplay = `${reservation.floor}-${reservation.spotNumber}`;
+
+            row.innerHTML = `
+                <td>${formatDateTime(reservation.startTime)}</td>
+                <td>${formatDateTime(reservation.endTime)}</td>
+                <td>${spotDisplay}</td>
+                <td><span class="badge bg-${getStatusColor(reservation.status)}">${reservation.status}</span></td>
+                ${includeActions ? `
+                    <td>
+                        ${reservation.status === 'CONFIRMED' ? `
+                            <button class="btn btn-sm btn-danger" 
+                                    onclick="window.cancelReservation('${reservation.reservationId}')">
+                                Cancel
+                            </button>
+                        ` : ''}
+                    </td>
+                ` : ''}
+            `;
+            table.appendChild(row);
+        });
+}
+
+function updateReservationStatistics(reservations) {
+    const now = new Date();
+    const active = reservations.filter(r => 
+        new Date(r.startTime) <= now && new Date(r.endTime) > now
+    ).length;
+    const upcoming = reservations.filter(r => new Date(r.startTime) > now).length;
+
+    updateStatElement('activeReservations', active);
+    updateStatElement('activeReservationsCount', active);
+    updateStatElement('upcomingReservations', upcoming);
+    updateStatElement('upcomingReservationsCount', upcoming);
+}
+
+function updateStatElement(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function validateReservationTimes(startTime, endTime) {
+    const now = new Date();
+    const openingHour = 7;
+    const closingHour = 23;
+
+    if (startTime < now) {
+        showErrorMessage('Start time must be in the future');
+        return false;
+    }
+
+    if (endTime <= startTime) {
+        showErrorMessage('End time must be after start time');
+        return false;
+    }
+
+    if (startTime.getHours() < openingHour || startTime.getHours() > closingHour ||
+        endTime.getHours() < openingHour || endTime.getHours() > closingHour) {
+        showErrorMessage('Reservations must be between 7:00 AM and 11:00 PM EST');
+        return false;
+    }
+
+    const duration = (endTime - startTime) / (1000 * 60 * 60);
+    if (duration > 24) {
+        showErrorMessage('Reservation cannot exceed 24 hours');
+        return false;
+    }
+
+    if (duration < 1) {
+        showErrorMessage('Reservation must be at least 1 hour');
+        return false;
+    }
+
+    return true;
+}
+
+function formatDateTime(dateString) {
+    return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'America/New_York'
+    });
+}
+
+function getStatusColor(status) {
+    switch (status) {
+        case 'CONFIRMED': return 'success';
+        case 'PENDING': return 'warning';
+        case 'CANCELLED': return 'danger';
+        case 'COMPLETED': return 'info';
+        default: return 'secondary';
+    }
+}
+
+async function sendConfirmationEmail(reservationId, userEmail, startTime, endTime) {
+    const token = localStorage.getItem('idToken');
+    const response = await fetch(CONFIRMATION_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            reservationId,
+            userEmail,
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString()
+        })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to send confirmation email');
+    }
+
+    return response.json();
+}
+
+function startReservationRefresh() {
+    setInterval(loadUserReservations, RESERVATION_REFRESH_INTERVAL);
+}
+
+function startPeriodicUpdates() {
+    setInterval(async () => {
+        await loadUserReservations();
+    }, 60000);
+}
+
+// Initialize everything
+window.cancelReservation = cancelReservation;
+
+document.addEventListener('DOMContentLoaded', initializeReservationSystem);
+
+export { reservationsCache, floorStats };
