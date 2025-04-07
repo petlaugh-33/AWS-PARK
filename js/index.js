@@ -32,12 +32,13 @@ function updateUserInterface(user) {
     }
 
     setupFloorSelectionHandlers();
+    
     loadUserReservations()
-        .then(() => {
-            console.log('Initial reservations loaded');
+        .then(reservations => {
+            console.log(`Loaded ${reservations.length} reservations for user`);
         })
         .catch(error => {
-            console.error('Error loading initial reservations:', error);
+            console.error('Error loading reservations:', error);
         });
 }
 
@@ -57,7 +58,6 @@ function handleFloorSelection(event) {
 }
 
 function highlightSelectedFloor(selectedFloor) {
-    // Remove highlight from all floor cards
     FLOORS.forEach(floor => {
         const card = document.querySelector(`[data-floor="${floor}"]`);
         if (card) {
@@ -65,7 +65,6 @@ function highlightSelectedFloor(selectedFloor) {
         }
     });
 
-    // Add highlight to selected floor
     const selectedCard = document.querySelector(`[data-floor="${selectedFloor}"]`);
     if (selectedCard) {
         selectedCard.classList.add('border-primary', 'shadow');
@@ -74,58 +73,45 @@ function highlightSelectedFloor(selectedFloor) {
 
 function setupTabNavigation() {
     console.log('Setting up tab navigation...');
-    const tabs = {
-        homeTab: document.getElementById('homeTab'),
-        analysisTab: document.getElementById('analysisTab'),
-        ReservationsTab: document.getElementById('ReservationsTab')
+    
+    // Get all tabs and pages
+    const tabsConfig = {
+        homeTab: { pageId: 'homePage', handler: () => loadUserReservations() },
+        analysisTab: { pageId: 'analysisPage', handler: () => { /* Analysis specific logic */ } },
+        ReservationsTab: { pageId: 'ReservationsPage', handler: () => loadUserReservations() }
     };
 
-    Object.entries(tabs).forEach(([id, element]) => {
-        if (element) {
-            element.addEventListener('click', function(e) {
+    // Add click handlers for each tab
+    Object.entries(tabsConfig).forEach(([tabId, config]) => {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            tab.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log(`${id} clicked`);
-                switchTab(id);
+                console.log(`${tabId} clicked`);
+                switchTab(tabId, config.pageId, config.handler);
             });
-        } else {
-            console.error(`Tab ${id} not found`);
         }
     });
 
     // Set initial tab
-    switchTab('homeTab');
+    switchTab('homeTab', 'homePage', tabsConfig.homeTab.handler);
 }
 
-function switchTab(tabId) {
-    console.log(`Switching to tab: ${tabId}`);
-    
-    // Get all pages
-    const pages = {
-        homeTab: document.getElementById('homePage'),
-        analysisTab: document.getElementById('analysisPage'),
-        ReservationsTab: document.getElementById('ReservationsPage')
-    };
+function switchTab(tabId, pageId, handler) {
+    console.log(`Switching to tab: ${tabId}, page: ${pageId}`);
 
     // Hide all pages
-    Object.values(pages).forEach(page => {
+    ['homePage', 'analysisPage', 'ReservationsPage'].forEach(id => {
+        const page = document.getElementById(id);
         if (page) {
             page.style.display = 'none';
         }
     });
 
     // Show selected page
-    const selectedPage = pages[tabId];
+    const selectedPage = document.getElementById(pageId);
     if (selectedPage) {
         selectedPage.style.display = 'block';
-        
-        // Perform tab-specific actions
-        if (tabId === 'ReservationsTab') {
-            console.log('Loading reservations for My Reservations tab');
-            loadUserReservations();
-        } else if (tabId === 'homeTab') {
-            console.log('Updating floor stats for Home tab');
-            loadUserReservations();
-        }
     }
 
     // Update active state of tabs
@@ -136,6 +122,11 @@ function switchTab(tabId) {
     const activeTab = document.getElementById(tabId);
     if (activeTab) {
         activeTab.classList.add('active');
+    }
+
+    // Execute tab-specific handler
+    if (handler) {
+        handler();
     }
 }
 
@@ -195,7 +186,7 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 
-// Make functions available globally if needed
+// Make functions available globally
 window.switchTab = switchTab;
 
 export {
