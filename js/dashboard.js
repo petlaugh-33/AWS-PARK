@@ -169,29 +169,48 @@ class ParkingDashboard {
             }
             
             const responseData = await response.json();
+            console.log('API Response:', responseData);
+    
+            // Parse the response if it's stringified
             const parsedData = typeof responseData.body === 'string' 
                 ? JSON.parse(responseData.body) 
                 : responseData;
     
+            // Update x-axis configuration based on timeframe
+            if (this.timeframe === 'weekly') {
+                this.chart.options.scales.x = {
+                    ...this.chart.options.scales.x,
+                    title: {
+                        display: true,
+                        text: 'Day of Week',
+                        font: { weight: 'bold' }
+                    },
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 45
+                    }
+                };
+            } else {
+                this.chart.options.scales.x = {
+                    ...this.chart.options.scales.x,
+                    title: {
+                        display: true,
+                        text: 'Hour of Day',
+                        font: { weight: 'bold' }
+                    },
+                    ticks: {
+                        callback: value => `${value}:00`
+                    }
+                };
+            }
+    
             // Update chart data
             this.chart.data.labels = parsedData.labels;
             this.chart.data.datasets[0].data = parsedData.data;
-    
-            // Update x-axis label and format based on timeframe
-            this.chart.options.scales.x.title.text = this.timeframe === 'daily' 
-                ? 'Hour of Day' 
-                : 'Day of Week';
-    
+            
             // Update chart title
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
-    
-            // Force display of all labels
-            this.chart.options.scales.x.ticks = {
-                autoSkip: false,
-                maxRotation: 45,
-                minRotation: 45
-            };
             
             this.chart.update();
             this.hideLoading();
