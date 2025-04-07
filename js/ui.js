@@ -98,13 +98,7 @@ function updateLastUpdated(timestamp) {
 
 export function initializeWebSocket() {
     console.log('Initializing WebSocket connection...');
-    
-    // Get the authentication token
-    const idToken = localStorage.getItem('idToken');
-    const wsUrl = `wss://bt7t18tvag.execute-api.us-east-1.amazonaws.com/production?token=${idToken}`;
-    
-    console.log('Connecting to WebSocket with auth token...');
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket('wss://ocly49pex3.execute-api.us-east-1.amazonaws.com/production');
     
     ws.onopen = () => {
         console.log('WebSocket connected');
