@@ -3,6 +3,7 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 
 let occupancyChart = null;
 let lastOccupancyUpdate = null;
+let lastValidOccupancy = null;
 
 function convertToEST(dateString) {
     const date = new Date(dateString);
@@ -69,23 +70,27 @@ function loadLastOccupancy() {
 export function updateStatus(data) {
     console.log('Updating status with data:', data);
     
-    // Check if this is an image processing update
+    // Check if this is an update we should process
     const isImageUpdate = data.lastAnalysis !== undefined;
-    console.log('Update type:', isImageUpdate ? 'Image Processing' : 'Storage Update');
+    const isReservationUpdate = data.reservations !== undefined;
     
-    // Store the last update with actual occupancy
-    if (isImageUpdate && data.occupiedSpaces > 0) {
-        lastOccupancyUpdate = { ...data };
-        console.log('Stored last occupancy update:', lastOccupancyUpdate);
+    // If this update has valid occupancy, store it
+    if (data.occupiedSpaces > 0) {
+        lastValidOccupancy = {
+            occupiedSpaces: data.occupiedSpaces,
+            availableSpaces: data.availableSpaces,
+            occupancyRate: data.occupancyRate
+        };
     }
     
-    // If we're getting a zero occupancy update but have a stored non-zero update, use the stored update
-    if (data.occupiedSpaces === 0 && lastOccupancyUpdate) {
-        console.log('Using stored occupancy data instead of zero update');
-        data = lastOccupancyUpdate;
+    // If we're getting a zero update but have a valid previous occupancy
+    if (data.occupiedSpaces === 0 && lastValidOccupancy && !isImageUpdate) {
+        data = {
+            ...data,
+            ...lastValidOccupancy
+        };
     }
     
-    // Create a copy of the data and ensure numbers are valid
     const statusData = {
         ...data,
         availableSpaces: Number(data.availableSpaces),
