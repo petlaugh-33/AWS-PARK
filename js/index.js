@@ -759,6 +759,7 @@ import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations, handleReservationSubmit } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
+import { STORAGE_KEYS } from './constants.js';
 import './dashboard.js';
 
 window.manualReconnect = manualReconnect;
@@ -822,7 +823,7 @@ function initializeApp() {
     initializeStorage();
 
     // Load saved status with direct key
-    const savedStatus = loadFromLocalStorage('currentStatus');
+    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
     console.log('Loading saved status:', savedStatus);
 
     initializeUI();

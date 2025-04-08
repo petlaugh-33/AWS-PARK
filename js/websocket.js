@@ -1,5 +1,6 @@
-import { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS } from './constants.js';
+import { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS, STORAGE_KEYS } from './constants.js';
 import { updateStatus, addToHistory } from './ui.js';
+import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
 
 let socket;
 let isConnecting = false;
@@ -61,7 +62,7 @@ export function connect() {
                         updateStatus(data.data);
                         addToHistory(data.data);
                         console.log('Status Updated and Saved');
-                        console.log('New Storage Status:', loadFromLocalStorage('currentStatus'));
+                        console.log('New Storage Status:', loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS));
                     } else {
                         console.error('[Status] Invalid data structure:', data);
                     }
