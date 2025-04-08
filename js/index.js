@@ -812,11 +812,12 @@ async function preloadStatus() {
         if (!response.ok) throw new Error('Failed to fetch status');
         const data = await response.json();
         console.log('[Preload] Parking status:', data);
-        updateStatus({ ...data, initialLoad: true });
+        updateStatus({ ...data, initialLoad: true }, 'api');
     } catch (error) {
         console.error('[Preload] Error fetching parking status:', error);
     }
 }
+
 
 async function initializeApp() {
     console.log('Initializing application...');
