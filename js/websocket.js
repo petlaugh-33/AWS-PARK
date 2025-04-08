@@ -9,7 +9,7 @@ let reconnectAttempts = 0;
 export function connect() {
     if (isConnecting) return;
     isConnecting = true;
-    
+
     const connectionStatus = document.getElementById('connectionStatus');
     connectionStatus.className = 'alert alert-secondary';
     connectionStatus.textContent = 'Connecting...';
@@ -30,7 +30,7 @@ export function connect() {
             isConnecting = false;
             connectionStatus.className = 'alert alert-warning';
             connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
-            
+
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                 reconnectAttempts++;
                 setTimeout(connect, 2000);
@@ -51,26 +51,29 @@ export function connect() {
             try {
                 const data = JSON.parse(event.data);
                 const timestamp = new Date().toLocaleTimeString();
-                
+
+                console.log(`[WebSocket] Raw message at ${timestamp}:`, data);
+
                 if (data.type === 'status_update') {
-                    console.log(`[${timestamp}] STATUS UPDATE:`);
-                    console.log('Available:', data.data?.availableSpaces);
-                    console.log('Occupied:', data.data?.occupiedSpaces);
-                    console.log('Rate:', data.data?.occupancyRate + '%');
-                    
-                    if (data.data && typeof data.data.availableSpaces !== 'undefined') {
-                        updateStatus(data.data, 'heartbeat');
-                        addToHistory(data.data);
-                        console.log('Status Updated and Saved');
-                        console.log('New Storage Status:', loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS));
+                    const statusData = data.data;
+
+                    console.log('Available:', statusData?.availableSpaces);
+                    console.log('Occupied:', statusData?.occupiedSpaces);
+                    console.log('Rate:', statusData?.occupancyRate + '%');
+                    console.log('Has lastAnalysis?', !!statusData?.lastAnalysis);
+
+                    if (statusData && statusData.lastAnalysis) {
+                        console.log('[WebSocket] ✅ Applying image-based status update');
+                        updateStatus(statusData, 'image');
+                        addToHistory(statusData);
                     } else {
-                        console.error('[Status] Invalid data structure:', data);
+                        console.warn('[WebSocket] ⛔ Ignoring non-image status update');
                     }
-                }
-                else if (data.type === 'reservation_update') {
+
+                } else if (data.type === 'reservation_update') {
                     console.log(`[${timestamp}] RESERVATION UPDATE:`);
                     console.log('Action:', data.action);
-                    
+
                     loadUserReservations();
                     if (data.action === 'create' || data.action === 'cancel') {
                         console.log('[Reservation] Triggering parking status update');
@@ -82,7 +85,7 @@ export function connect() {
                 console.error('Raw message:', event.data);
             }
         };
-        
+
     } catch (error) {
         console.error('Error creating WebSocket:', error);
         isConnecting = false;
@@ -108,7 +111,7 @@ export function monitorConnection() {
 }
 
 export function manualReconnect() {
-  console.log('Manual reconnection requested');
+    console.log('Manual reconnection requested');
     reconnectAttempts = 0;
     if (socket) {
         socket.close();
@@ -118,11 +121,10 @@ export function manualReconnect() {
 
 window.manualReconnect = manualReconnect;
 
-// Get current socket state
 export function getConnectionState() {
     if (!socket) return 'CLOSED';
-    
-    switch(socket.readyState) {
+
+    switch (socket.readyState) {
         case WebSocket.CONNECTING:
             return 'CONNECTING';
         case WebSocket.OPEN:
@@ -136,7 +138,6 @@ export function getConnectionState() {
     }
 }
 
-// Send a message through the WebSocket
 export function sendMessage(message) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         try {
@@ -150,7 +151,6 @@ export function sendMessage(message) {
     return false;
 }
 
-// Close the WebSocket connection
 export function closeConnection() {
     if (socket) {
         try {
@@ -164,17 +164,14 @@ export function closeConnection() {
     return false;
 }
 
-// Reset connection attempts
 export function resetConnectionAttempts() {
     reconnectAttempts = 0;
 }
 
-// Check if WebSocket is currently connected
 export function isConnected() {
     return socket && socket.readyState === WebSocket.OPEN;
 }
 
-// Initialize WebSocket with custom handlers
 export function initializeWebSocket(customHandlers = {}) {
     if (customHandlers.onMessage) {
         const originalOnMessage = socket.onmessage;
@@ -200,3 +197,4 @@ export function initializeWebSocket(customHandlers = {}) {
         };
     }
 }
+
