@@ -754,7 +754,7 @@
 
 // index.js
 
-import { initializeStorage, cleanupStorageData, loadFromLocalStorage, STORAGE_KEYS  } from './storage.js';
+import { initializeStorage, cleanupStorageData, loadFromLocalStorage} from './storage.js';
 import { initializeUI, loadHistoricalData } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations, handleReservationSubmit } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
@@ -819,11 +819,10 @@ function initializeApp() {
     console.log('Authentication successful. Continuing initialization...');
     console.log('Initializing for user:', user.email);
 
-    // Initialize storage first
     initializeStorage();
 
-    // Load saved status
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    // Load saved status with direct key
+    const savedStatus = loadFromLocalStorage('currentStatus');
     console.log('Loading saved status:', savedStatus);
 
     initializeUI();
