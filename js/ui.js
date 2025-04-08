@@ -83,6 +83,10 @@ export function updateStatus(data, source = 'unknown') {
 
     console.log(`[updateStatus] Applying update from ${source}`, data);
 
+    if (data.occupiedSpaces === 0 && !data.lastAnalysis) {
+    console.warn('[updateStatus] ⚠️  Applying 0 occupancy with no lastAnalysis — POTENTIAL FLICKER');
+}
+
     // If valid image analysis, store as latest
     if (isImageUpdate) {
         lastValidOccupancy = {
