@@ -71,13 +71,11 @@ function loadLastOccupancy() {
 
 export function updateStatus(data, source = 'unknown') {
     const now = Date.now();
+    const isImageUpdate = data.lastAnalysis !== undefined;
 
-    // Prevent stale heartbeat from overwriting recent API preload
-    if (source === 'heartbeat' && lastUpdatedFrom === 'api') {
-        if (now - lastUpdatedAt < 2000) {
-            console.log('[updateStatus] Skipping stale heartbeat update');
-            return;
-        }
+    if (source === 'heartbeat' && !isImageUpdate) {
+        console.log('[updateStatus] Skipping non-image heartbeat update');
+        return;
     }
 
     lastUpdatedFrom = source;
@@ -85,20 +83,27 @@ export function updateStatus(data, source = 'unknown') {
 
     console.log(`[updateStatus] Applying update from ${source}`, data);
 
-    // Check if this is an update we should process
-    const isImageUpdate = data.lastAnalysis !== undefined;
-    const isReservationUpdate = data.reservations !== undefined;
-
-    // If this update has valid occupancy, store it
-    if (data.occupiedSpaces > 0) {
+    // If valid image analysis, store as latest
+    if (isImageUpdate) {
         lastValidOccupancy = {
             occupiedSpaces: data.occupiedSpaces,
             availableSpaces: data.availableSpaces,
             occupancyRate: data.occupancyRate
         };
+
+        // Save to localStorage
+        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
+            occupiedSpaces: data.occupiedSpaces,
+            availableSpaces: data.availableSpaces,
+            occupancyRate: data.occupancyRate,
+            parkingStatus: data.parkingStatus,
+            lastUpdated: data.lastUpdated,
+            lotId: data.lotId,
+            lastAnalysis: data.lastAnalysis
+        });
     }
 
-    // If we're getting a zero update but have a valid previous occupancy
+    // If we get a 0 update, fallback to image result
     if (data.occupiedSpaces === 0 && lastValidOccupancy && !isImageUpdate) {
         data = {
             ...data,
@@ -118,17 +123,14 @@ export function updateStatus(data, source = 'unknown') {
     const mainStatus = document.getElementById('mainStatus');
     mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
 
-    // Update reservation stats
     updateReservationStats(statusData);
 
     document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
     document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
     document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
-    document.getElementById('lastUpdated').textContent = formatDateTime(statusData.lastUpdated);
 
     const bar = document.getElementById('occupancyBar');
     bar.style.width = `${statusData.occupancyRate}%`;
-
     updateOccupancyBarColor(bar, statusData.occupancyRate);
 
     document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
@@ -137,8 +139,6 @@ export function updateStatus(data, source = 'unknown') {
     mainStatus.classList.add('update-animation');
     setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
 
-    // Save the processed data
-    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, statusData);
     updateDataStorageTime();
 }
 
