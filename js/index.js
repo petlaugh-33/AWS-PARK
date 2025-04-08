@@ -806,10 +806,21 @@ function initializeWebSocketWithAuth() {
     }
 }
 
+async function preloadStatus() {
+    try {
+        const response = await fetch('https://wszwvwc915.execute-api.us-east-1.amazonaws.com/prod/status');
+        if (!response.ok) throw new Error('Failed to fetch status');
+        const data = await response.json();
+        console.log('[Preload] Parking status:', data);
+        updateStatus({ ...data, initialLoad: true });
+    } catch (error) {
+        console.error('[Preload] Error fetching parking status:', error);
+    }
+}
 
-function initializeApp() {
+async function initializeApp() {
     console.log('Initializing application...');
-    
+
     const user = getCurrentUser();
     if (!user) {
         console.log('Authentication check failed. Redirecting to login.');
@@ -822,18 +833,14 @@ function initializeApp() {
 
     initializeStorage();
     initializeUI();
-    initializeWebSocketWithAuth(); // Moved this up
 
-    // Load saved status with direct key
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    console.log('Loading saved status:', savedStatus);
-    
-    // Apply saved status after WebSocket initialization
-    if (savedStatus && savedStatus.occupiedSpaces !== undefined) {
-        console.log('Applying saved status:', savedStatus);
-        setTimeout(() => updateStatus({...savedStatus, initialLoad: true}), 100);
-    }
+    // ✅ Load real-time parking status from backend
+    await preloadStatus();
 
+    // ✅ Start real-time updates after status is loaded
+    initializeWebSocketWithAuth();
+
+    // ✅ Initialize other modules
     initializeReservationSystem();
     updateUserInterface(user);
 
