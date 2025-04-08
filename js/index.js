@@ -841,9 +841,6 @@ async function initializeApp() {
         updateStatus(cachedStatus, 'local');
     }
 
-    // ✅ Fetch current status from API (only applies if newer)
-    await preloadStatus();
-
     initializeWebSocketWithAuth();
     initializeReservationSystem();
     updateUserInterface(user);
