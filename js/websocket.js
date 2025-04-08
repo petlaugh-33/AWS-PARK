@@ -1,355 +1,198 @@
-import { STORAGE_KEYS, CHART_TYPES, API_ENDPOINT, MAX_HISTORY } from './constants.js';
-import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
+import { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS } from './constants.js';
+import { updateStatus, addToHistory } from './ui.js';
 
-let occupancyChart = null;
+let socket;
+let isConnecting = false;
+let reconnectAttempts = 0;
 
-function convertToEST(dateString) {
-    const date = new Date(dateString);
-    return new Date(date.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-}
-
-// Initialize UI
-export function initializeUI() {
-    // Add tab event listeners
-    document.getElementById('homeTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('homeTab');
-    });
-
-    document.getElementById('analysisTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('analysisTab');
-    });
-
-    // Load initial data
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus) {
-        updateStatus(savedStatus);
-    }
-
-    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-    if (savedHistory) {
-        updateHistoryTable(savedHistory);
-    }
-
-    // Initialize chart with last selected type
-    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
-    loadHistoricalData(lastChartType);
-
-    // Set initial tab
-    switchTab('homeTab');
-
-    // Update storage time display
-    updateDataStorageTime();
-}
-
-// Tab switching functionality
-export function switchTab(tabId) {
-    document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
-    document.getElementById('analysisPage').style.display = tabId === 'analysisTab' ? 'block' : 'none';
+export function connect() {
+    if (isConnecting) return;
+    isConnecting = true;
     
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    document.getElementById(tabId).classList.add('active');
-}
+    const connectionStatus = document.getElementById('connectionStatus');
+    connectionStatus.className = 'alert alert-secondary';
+    connectionStatus.textContent = 'Connecting...';
 
-// Update parking status
-export function updateStatus(data) {
-    console.log('Updating status with data:', data);
-    const mainStatus = document.getElementById('mainStatus');
-    mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
-
-    // Add this line to update reservation stats
-    updateReservationStats(data);
-
-    document.getElementById('availableSpaces').textContent = data.availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-    document.getElementById('lastUpdated').textContent = formatDateTime(data.lastUpdated);
-    
-    const bar = document.getElementById('occupancyBar');
-    bar.style.width = `${data.occupancyRate}%`;
-    
-    updateOccupancyBarColor(bar, data.occupancyRate);
-    
-    // Update this line to use EST
-    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' });
-    
-    mainStatus.classList.add('update-animation');
-    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-
-    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
-    updateDataStorageTime();
-}
-
-// Add this function to your ui.js
-function updateReservationStats(status) {
-    if (status) {
-        document.getElementById('activeReservations').textContent = status.activeReservations || 0;
-        document.getElementById('upcomingReservations').textContent = status.upcomingReservations || 0;
-    }
-}
-
-// Update occupancy bar color based on rate
-function updateOccupancyBarColor(bar, rate) {
-    if (rate < 70) {
-        bar.className = 'progress-bar bg-success';
-    } else if (rate < 90) {
-        bar.className = 'progress-bar bg-warning';
-    } else {
-        bar.className = 'progress-bar bg-danger';
-    }
-}
-
-// Add data to history
-export function addToHistory(data) {
     try {
-        if (!validateHistoryData(data)) {
-            console.error('Invalid data received:', data);
-            return;
-        }
+        socket = new WebSocket(WEBSOCKET_URL);
 
-        const time = new Date(data.lastUpdated).toLocaleTimeString();
-        const history = loadFromLocalStorage(STORAGE_KEYS.HISTORY) || [];
+        socket.onopen = () => {
+            console.log('WebSocket connected');
+            isConnecting = false;
+            reconnectAttempts = 0;
+            connectionStatus.className = 'alert alert-success';
+            connectionStatus.textContent = 'Connected';
+            startHeartbeat();
+        };
+
+        socket.onclose = () => {
+            isConnecting = false;
+            connectionStatus.className = 'alert alert-warning';
+            connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+            
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                setTimeout(connect, 2000);
+            } else {
+                connectionStatus.className = 'alert alert-danger';
+                connectionStatus.textContent = 'Connection failed - Please refresh the page';
+            }
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            isConnecting = false;
+            connectionStatus.className = 'alert alert-danger';
+            connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+        };
+
+        socket.onmessage = (event) => {
+    try {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);
         
-        history.unshift({
-            time,
-            available: data.availableSpaces,
-            occupied: data.occupiedSpaces,
-            status: data.parkingStatus
-        });
-
-        if (history.length > MAX_HISTORY) {
-            history.pop();
-        }
-
-        saveToLocalStorage(STORAGE_KEYS.HISTORY, history);
-        updateHistoryTable(history);
-    } catch (error) {
-        console.error('Error adding to history:', error);
-    }
-}
-
-// Validate history data
-function validateHistoryData(data) {
-    return data &&
-           data.lastUpdated &&
-           typeof data.availableSpaces === 'number' &&
-           typeof data.occupiedSpaces === 'number' &&
-           data.parkingStatus;
-}
-
-// Update history table
-function updateHistoryTable(history) {
-    const tbody = document.getElementById('historyTable');
-    if (!tbody) return;
-
-    tbody.innerHTML = history
-        .filter(entry => entry && entry.lastUpdated) // Validate entry has lastUpdated
-        .map(entry => {
-            // Format the time in EST
-            const time = new Date(entry.lastUpdated).toLocaleString('en-US', {
-                timeZone: 'America/New_York',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
-
-            return `
-                <tr>
-                    <td>${time}</td>
-                    <td>${entry.availableSpaces}</td>
-                    <td>${entry.occupiedSpaces}</td>
-                    <td><span class="badge bg-${getStatusBadgeColor(entry.parkingStatus)}">${entry.parkingStatus}</span></td>
-                </tr>
-            `;
-        })
-        .join('');
-}
-
-// Helper function for status badge colors
-function getStatusBadgeColor(status) {
-    switch (status) {
-        case 'AVAILABLE':
-            return 'success';
-        case 'LIMITED':
-            return 'warning';
-        case 'FULL':
-            return 'danger';
-        default:
-            return 'secondary';
-    }
-}
-
-// Add this helper function if you don't have it
-function validateHistoryEntry(entry) {
-    return entry && 
-           entry.time && 
-           typeof entry.available === 'number' && 
-           typeof entry.occupied === 'number' && 
-           entry.status;
-}
-
-// Create history table row
-function createHistoryRow(entry) {
-    return `
-        <tr>
-            <td>${new Date(entry.time).toLocaleString('en-US', { timeZone: 'America/New_York' })}</td>
-            <td>${entry.available}</td>
-            <td>${entry.occupied}</td>
-            <td><span class="badge bg-${getStatusBadgeColor(entry.status)}">${entry.status}</span></td>
-        </tr>
-    `;
-}
-
-// Load historical data
-export async function loadHistoricalData(timeframe) {
-    try {
-        saveToLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE, timeframe);
-        const response = await fetch(`${API_ENDPOINT}/historical?type=${timeframe}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        updateChart(data, timeframe);
-    } catch (error) {
-        console.error('Error loading historical data:', error);
-        const chartError = document.getElementById('chartError');
-        if (chartError) {
-            chartError.textContent = `Failed to load historical data: ${error.message}`;
-            chartError.style.display = 'block';
-        }
-    }
-}
-
-// Update chart
-export function updateChart(data, timeframe) {
-    const ctx = document.getElementById('occupancyChart')?.getContext('2d');
-    if (!ctx) return;
-    
-    if (occupancyChart) {
-        occupancyChart.destroy();
-    }
-    
-    const labels = getChartLabels(timeframe);
-    const chartData = timeframe === 'daily' ? data.hourly : data.daily;
-    
-    occupancyChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Average Occupancy Rate',
-                data: labels.map(label => {
-                    const key = timeframe === 'daily' ? 
-                        label.split(':')[0] : 
-                        labels.indexOf(label).toString();
-                    return chartData[key] || 0;
-                }),
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    title: {
-                        display: true,
-                        text: 'Occupancy Rate (%)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: timeframe === 'daily' ? 'Hour of Day' : 'Day of Week'
-                    }
-                }
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: `Parking Occupancy - ${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} View`
-                }
+        if (data.type === 'status_update') {
+            console.log('Processing status update:', data.data);
+            // Verify data structure before updating UI
+            if (data.data && typeof data.data.availableSpaces !== 'undefined') {
+                updateStatus(data.data);
+                addToHistory(data.data);
+                console.log('Status update processed');
+            } else {
+                console.error('Invalid status update data:', data);
             }
         }
-    });
-
-    updatePeakInfo(data);
-}
-
-function formatDateTime(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleString('en-US', {
-            timeZone: 'America/New_York',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-        });
+        else if (data.type === 'reservation_update') {
+            console.log('Processing reservation update:', data);
+            // Reload reservations when there's any reservation change
+            loadUserReservations();
+            
+            // Also update the status since parking availability might have changed
+            if (data.action === 'create' || data.action === 'cancel') {
+                console.log('Updating parking status due to reservation change');
+                updateParkingStatus();
+            }
+        }
     } catch (error) {
-        console.error('Error formatting date:', dateString, error);
-        return 'Invalid Date';
+        console.error('Error processing message:', error);
+        console.error('Raw message:', event.data);
+    }
+};
+        
+    } catch (error) {
+        console.error('Error creating WebSocket:', error);
+        isConnecting = false;
+        connectionStatus.className = 'alert alert-danger';
+        connectionStatus.textContent = 'Failed to create connection';
     }
 }
 
-// Get chart labels
-function getChartLabels(timeframe) {
-    return timeframe === 'daily' ?
-        Array.from({length: 24}, (_, i) => `${i}:00`) :
-        ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export function startHeartbeat() {
+    setInterval(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ action: 'heartbeat' }));
+        }
+    }, 30000); // 30 seconds
 }
 
-// Update peak information
-function updatePeakInfo(data) {
-    const peakInfo = document.getElementById('peakInfo');
-    if (peakInfo && data.peak) {
-        peakInfo.textContent = `Peak: ${data.peak.peak.toFixed(2)}%, Off-Peak: ${data.peak.offPeak.toFixed(2)}%`;
+export function monitorConnection() {
+    setInterval(() => {
+        if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
+            connect();
+        }
+    }, 5000); // 5 seconds
+}
+
+export function manualReconnect() {
+  console.log('Manual reconnection requested');
+    reconnectAttempts = 0;
+    if (socket) {
+        socket.close();
     }
+    connect();
 }
 
-// Show success message
-export function showSuccessMessage(message) {
-    showMessage(message, 'success');
-}
+window.manualReconnect = manualReconnect;
 
-// Show error message
-export function showErrorMessage(message) {
-    showMessage(message, 'danger');
-}
-
-// Show message helper
-function showMessage(message, type) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `alert alert-${type} mt-3`;
-    messageDiv.textContent = message;
+// Get current socket state
+export function getConnectionState() {
+    if (!socket) return 'CLOSED';
     
-    const container = document.querySelector('.table-responsive');
-    if (container) {
-        container.insertAdjacentElement('beforebegin', messageDiv);
-        setTimeout(() => messageDiv.remove(), 3000);
+    switch(socket.readyState) {
+        case WebSocket.CONNECTING:
+            return 'CONNECTING';
+        case WebSocket.OPEN:
+            return 'OPEN';
+        case WebSocket.CLOSING:
+            return 'CLOSING';
+        case WebSocket.CLOSED:
+            return 'CLOSED';
+        default:
+            return 'UNKNOWN';
     }
 }
 
-// Update data storage time
-function updateDataStorageTime() {
-    const storageTimeElement = document.getElementById('dataStorageTime');
-    if (storageTimeElement) {
-        const lastUpdated = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS)?.lastUpdated;
-        storageTimeElement.textContent = lastUpdated ? 
-            new Date(lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' }) : 
-            'No data stored';
+// Send a message through the WebSocket
+export function sendMessage(message) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+            socket.send(JSON.stringify(message));
+            return true;
+        } catch (error) {
+            console.error('Error sending message:', error);
+            return false;
+        }
+    }
+    return false;
+}
+
+// Close the WebSocket connection
+export function closeConnection() {
+    if (socket) {
+        try {
+            socket.close();
+            return true;
+        } catch (error) {
+            console.error('Error closing connection:', error);
+            return false;
+        }
+    }
+    return false;
+}
+
+// Reset connection attempts
+export function resetConnectionAttempts() {
+    reconnectAttempts = 0;
+}
+
+// Check if WebSocket is currently connected
+export function isConnected() {
+    return socket && socket.readyState === WebSocket.OPEN;
+}
+
+// Initialize WebSocket with custom handlers
+export function initializeWebSocket(customHandlers = {}) {
+    if (customHandlers.onMessage) {
+        const originalOnMessage = socket.onmessage;
+        socket.onmessage = (event) => {
+            originalOnMessage(event);
+            customHandlers.onMessage(event);
+        };
+    }
+
+    if (customHandlers.onClose) {
+        const originalOnClose = socket.onclose;
+        socket.onclose = (event) => {
+            originalOnClose(event);
+            customHandlers.onClose(event);
+        };
+    }
+
+    if (customHandlers.onError) {
+        const originalOnError = socket.onerror;
+        socket.onerror = (error) => {
+            originalOnError(error);
+            customHandlers.onError(error);
+        };
     }
 }
