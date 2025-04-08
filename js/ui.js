@@ -36,17 +36,6 @@ export function initializeUI() {
     updateDataStorageTime();
 }
 
-    // Initialize chart with last selected type
-    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
-    loadHistoricalData(lastChartType);
-
-    // Set initial tab
-    switchTab('homeTab');
-
-    // Update storage time display
-    updateDataStorageTime();
-}
-
 // Tab switching functionality
 export function switchTab(tabId) {
     document.getElementById('homePage').style.display = tabId === 'homeTab' ? 'block' : 'none';
