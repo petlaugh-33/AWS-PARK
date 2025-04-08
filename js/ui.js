@@ -31,6 +31,7 @@ export function initializeUI() {
 
     const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
     loadHistoricalData(lastChartType);
+
     switchTab('homeTab');
     updateDataStorageTime();
 }
