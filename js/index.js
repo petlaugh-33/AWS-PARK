@@ -755,7 +755,7 @@
 // index.js
 
 import { initializeStorage, cleanupStorageData, loadFromLocalStorage} from './storage.js';
-import { initializeUI, loadHistoricalData } from './ui.js';
+import { initializeUI, loadHistoricalData, updateStatus } from './ui.js';
 import { initializeReservationSystem, cancelReservation, loadUserReservations, handleReservationSubmit } from './reservations.js';
 import { connect, monitorConnection, manualReconnect, closeConnection } from './websocket.js';
 import { getCurrentUser, redirectToLogin } from './auth.js';
