@@ -57,27 +57,17 @@ export function switchTab(tabId) {
 export function updateStatus(data) {
     console.log('Updating status with data:', data);
     
-    // Get current stored status and check timestamps
+    // Check if this is an image processing update
+    const isImageUpdate = data.lastAnalysis !== undefined;
+    console.log('Update type:', isImageUpdate ? 'Image Processing' : 'Storage Update');
+    
+    // Get current stored status
     const currentStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (currentStatus && currentStatus.lastUpdated && data.lastUpdated) {
-        // Remove timezone offset and normalize both timestamps
-        const currentTimeStr = currentStatus.lastUpdated.split('-04:00')[0];
-        const newTimeStr = data.lastUpdated.split('-04:00')[0];
-        
-        const currentTime = new Date(currentTimeStr);
-        const newTime = new Date(newTimeStr);
-        
-        console.log('Time comparison:', {
-            currentOriginal: currentStatus.lastUpdated,
-            newOriginal: data.lastUpdated,
-            currentNormalized: currentTime,
-            newNormalized: newTime
-        });
-        
-        if (newTime > currentTime) {
-            console.log('Applying newer update');
-        } else {
-            console.log('Skipping older update:', data);
+    
+    // Always apply image updates, otherwise check timestamps
+    if (!isImageUpdate && currentStatus) {
+        if (Number(currentStatus.occupiedSpaces) > Number(data.occupiedSpaces)) {
+            console.log('Keeping existing higher occupancy:', currentStatus.occupiedSpaces);
             return;
         }
     }
