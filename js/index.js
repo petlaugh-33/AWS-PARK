@@ -819,20 +819,31 @@ function initializeApp() {
     console.log('Authentication successful. Continuing initialization...');
     console.log('Initializing for user:', user.email);
 
+    // Initialize storage first
     initializeStorage();
+
+    // Load saved status
+    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    console.log('Loading saved status:', savedStatus);
+
     initializeUI();
+    
+    // Apply saved status after UI initialization
+    if (savedStatus && savedStatus.occupiedSpaces !== undefined) {
+        console.log('Applying saved status:', savedStatus);
+        setTimeout(() => updateStatus(savedStatus), 100);
+    }
+
     initializeReservationSystem();
-    
     updateUserInterface(user);
-    
     initializeWebSocketWithAuth();
 
     setInterval(cleanupStorageData, 60 * 60 * 1000);
-
     setupTabNavigation();
 
     console.log('Application initialization complete.');
 }
+
 
 // function setupTabNavigation() {
 //     const homeTab = document.getElementById('homeTab');
