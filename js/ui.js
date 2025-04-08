@@ -58,21 +58,29 @@ export function updateStatus(data) {
     console.log('Updating status with data:', data);
     
     // Get current stored status and check timestamps
-     const currentStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-     if (currentStatus && currentStatus.lastUpdated && data.lastUpdated) {
-         const currentTime = new Date(currentStatus.lastUpdated).getTime();
-         const newTime = new Date(data.lastUpdated).getTime();
-         console.log('Time comparison:', {
-             current: currentStatus.lastUpdated,
-             new: data.lastUpdated,
-             currentTime,
-             newTime
-         });
-         if (currentTime > newTime) {  // Compare milliseconds
-             console.log('Skipping older update:', data);
-             return;
-         }
-     }
+    const currentStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (currentStatus && currentStatus.lastUpdated && data.lastUpdated) {
+        // Remove timezone offset and normalize both timestamps
+        const currentTimeStr = currentStatus.lastUpdated.split('-04:00')[0];
+        const newTimeStr = data.lastUpdated.split('-04:00')[0];
+        
+        const currentTime = new Date(currentTimeStr);
+        const newTime = new Date(newTimeStr);
+        
+        console.log('Time comparison:', {
+            currentOriginal: currentStatus.lastUpdated,
+            newOriginal: data.lastUpdated,
+            currentNormalized: currentTime,
+            newNormalized: newTime
+        });
+        
+        if (newTime > currentTime) {
+            console.log('Applying newer update');
+        } else {
+            console.log('Skipping older update:', data);
+            return;
+        }
+    }
     
     // Create a copy of the data and ensure numbers are valid
     const statusData = {
