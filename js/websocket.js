@@ -47,37 +47,39 @@ export function connect() {
         };
 
         socket.onmessage = (event) => {
-    try {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket message received:', data);
-        
-        if (data.type === 'status_update') {
-            console.log('Processing status update:', data.data);
-            // Verify data structure before updating UI
-            if (data.data && typeof data.data.availableSpaces !== 'undefined') {
-                updateStatus(data.data);
-                addToHistory(data.data);
-                console.log('Status update processed');
-            } else {
-                console.error('Invalid status update data:', data);
+            try {
+                const data = JSON.parse(event.data);
+                const timestamp = new Date().toLocaleTimeString();
+                
+                if (data.type === 'status_update') {
+                    console.log(`[${timestamp}] STATUS UPDATE:`);
+                    console.log('Available:', data.data?.availableSpaces);
+                    console.log('Occupied:', data.data?.occupiedSpaces);
+                    console.log('Rate:', data.data?.occupancyRate + '%');
+                    
+                    if (data.data && typeof data.data.availableSpaces !== 'undefined') {
+                        updateStatus(data.data);
+                        addToHistory(data.data);
+                        console.log('[Status] Update completed');
+                    } else {
+                        console.error('[Status] Invalid data structure:', data);
+                    }
+                }
+                else if (data.type === 'reservation_update') {
+                    console.log(`[${timestamp}] RESERVATION UPDATE:`);
+                    console.log('Action:', data.action);
+                    
+                    loadUserReservations();
+                    if (data.action === 'create' || data.action === 'cancel') {
+                        console.log('[Reservation] Triggering parking status update');
+                        updateParkingStatus();
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing message:', error);
+                console.error('Raw message:', event.data);
             }
-        }
-        else if (data.type === 'reservation_update') {
-            console.log('Processing reservation update:', data);
-            // Reload reservations when there's any reservation change
-            loadUserReservations();
-            
-            // Also update the status since parking availability might have changed
-            if (data.action === 'create' || data.action === 'cancel') {
-                console.log('Updating parking status due to reservation change');
-                updateParkingStatus();
-            }
-        }
-    } catch (error) {
-        console.error('Error processing message:', error);
-        console.error('Raw message:', event.data);
-    }
-};
+        };
         
     } catch (error) {
         console.error('Error creating WebSocket:', error);
