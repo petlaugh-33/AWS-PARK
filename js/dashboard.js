@@ -5,7 +5,6 @@ class ParkingDashboard {
         this.timeframe = 'daily';
         this.containerDiv = document.getElementById('dashboard-container');
         this.loadingDiv = document.getElementById('dashboard-loading');
-        this.apiEndpoint = 'https://9nilem7pc1.execute-api.us-east-1.amazonaws.com/prod/dashboard';
         this.init();
     }
 
@@ -102,7 +101,7 @@ class ParkingDashboard {
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: [],
+                labels: Array.from({length: 24}, (_, i) => `${i}:00`),
                 datasets: [{
                     label: 'Average Occupancy Rate',
                     data: [],
@@ -118,10 +117,7 @@ class ParkingDashboard {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Parking Occupancy - Daily View',
-                        font: {
-                            size: 16
-                        }
+                        text: 'Parking Occupancy - Daily View'
                     }
                 },
                 scales: {
@@ -130,27 +126,13 @@ class ParkingDashboard {
                         max: 100,
                         title: {
                             display: true,
-                            text: 'Occupancy Rate (%)',
-                            font: {
-                                weight: 'bold'
-                            }
-                        },
-                        ticks: {
-                            callback: value => `${value}%`
+                            text: 'Occupancy Rate (%)'
                         }
                     },
                     x: {
                         title: {
                             display: true,
-                            text: 'Hour of Day',
-                            font: {
-                                weight: 'bold'
-                            }
-                        },
-                        ticks: {
-                            autoSkip: false,
-                            maxRotation: 45,
-                            minRotation: 45
+                            text: 'Hour of Day'
                         }
                     }
                 }
@@ -158,74 +140,62 @@ class ParkingDashboard {
         });
     }
 
+    generateMockData() {
+        if (this.timeframe === 'daily') {
+            // Generate realistic daily pattern
+            return Array.from({length: 24}, (_, hour) => {
+                if (hour >= 7 && hour <= 9) { // Morning peak
+                    return 70 + Math.random() * 20;
+                } else if (hour >= 16 && hour <= 18) { // Evening peak
+                    return 75 + Math.random() * 20;
+                } else if (hour >= 23 || hour <= 5) { // Night time
+                    return 10 + Math.random() * 15;
+                } else { // Regular hours
+                    return 30 + Math.random() * 30;
+                }
+            });
+        } else { // weekly
+            // Generate week pattern with lower weekend occupancy
+            return Array.from({length: 24}, () => 40 + Math.random() * 40);
+        }
+    }
+
     async loadDashboardData() {
         try {
             this.showLoading();
             this.updateDateTime();
-    
-            const url = `${this.apiEndpoint}?timeframe=${this.timeframe}`;
-            console.log('Calling API with URL:', url);  // Debug log
-            
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch dashboard data');
-            }
-            
-            const responseData = await response.json();
-            console.log('Raw API Response:', responseData);
-    
-            const parsedData = JSON.parse(responseData.body);
-            console.log('Parsed response:', parsedData);
-    
-            // Set chart data based on timeframe
-            if (this.timeframe === 'weekly') {
-                console.log('Setting up weekly view');
-                this.chart.data.labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                this.chart.data.datasets[0].data = parsedData.data;
-                
-                // Configure x-axis for weekly view
-                this.chart.options.scales.x = {
-                    type: 'category',
-                    title: {
-                        display: true,
-                        text: 'Day of Week',
-                        font: { weight: 'bold' }
-                    },
-                    ticks: {
-                        autoSkip: false,
-                        maxRotation: 45
-                    }
-                };
-            } else {
-                console.log('Setting up daily view');
-                this.chart.data.labels = parsedData.labels;
-                this.chart.data.datasets[0].data = parsedData.data;
-                
-                // Configure x-axis for daily view
-                this.chart.options.scales.x = {
-                    type: 'category',
-                    title: {
-                        display: true,
-                        text: 'Hour of Day',
-                        font: { weight: 'bold' }
-                    },
-                    ticks: {
-                        autoSkip: false,
-                        maxRotation: 45
-                    }
-                };
-            }
-    
+
+            // Simulate loading delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const data = this.generateMockData();
+
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
-    
-            this.chart.update();
+            
+            this.updateChartData(data);
             this.hideLoading();
-    
         } catch (error) {
-            console.error('Data loading error:', error);
             this.showError('Failed to load dashboard data');
+            console.error('Data loading error:', error);
         }
+    }
+
+    updateChartData(data) {
+        if (this.chart) {
+            this.chart.data.datasets[0].data = data;
+            this.chart.update();
+        }
+    }
+
+    updatePeakStats(data) {
+        const peakHours = data.slice(7,9).concat(data.slice(16,18));
+        const offPeakHours = data.filter((_, i) => !([7,8,16,17].includes(i)));
+        
+        const peakAvg = peakHours.reduce((a,b) => a + b, 0) / peakHours.length;
+        const offPeakAvg = offPeakHours.reduce((a,b) => a + b, 0) / offPeakHours.length;
+        
+        document.getElementById('peakStats').textContent = 
+            `Peak: ${peakAvg.toFixed(2)}%, Off-Peak: ${offPeakAvg.toFixed(2)}%`;
     }
 }
 

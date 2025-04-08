@@ -28,33 +28,7 @@
             position: relative;
             margin-top: 2rem;
         }
-
-        .floor-card {
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .floor-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .floor-header {
-            font-size: 1.2rem;
-            font-weight: bold;
-            padding: 10px;
-            border-radius: 8px 8px 0 0;
-        }
-
-        .progress {
-            height: 8px;
-            margin-top: 10px;
-        }
-
-        .progress-bar.low { background-color: #28a745; }
-        .progress-bar.medium { background-color: #ffc107; }
-        .progress-bar.high { background-color: #dc3545; }
-
-        /* Dashboard styles */
+        /* Update dashboard styles */
         #dashboard-container {
             height: 800px;
             position: relative;
@@ -65,11 +39,6 @@
         .spinner-border {
             width: 3rem;
             height: 3rem;
-        }
-
-        .stats-value {
-            font-size: 1.5rem;
-            font-weight: bold;
         }
     </style>
 </head>
@@ -111,7 +80,7 @@
                         <a class="nav-link" href="#" id="ReservationsTab">My Reservations</a>
                     </li>
                 </ul>
-                <!-- User Section -->
+                <!-- Add this user section -->
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item" id="userSection">
                         <script type="module">
@@ -127,6 +96,7 @@
                                 `;
                             }
 
+                            // Add global logout handler
                             window.handleLogout = () => {
                                 logoutUser();
                             };
@@ -136,104 +106,45 @@
             </div>
         </div>
     </nav>
+
     <!-- Main Container -->
     <div class="container py-4">
         <!-- Home Page -->
         <div id="homePage">
-            <!-- Parking Status by Floor -->
+            <!-- Connection Status Card -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <h5 class="card-title mb-4">Parking Status by Floor</h5>
+                    <h5 class="card-title">Connection Status</h5>
+                    <div id="connectionStatus" class="alert alert-secondary">
+                        Connecting...
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="window.manualReconnect()">
+                        Reconnect
+                    </button>
+                </div>
+            </div>
+        
+            <!-- Main Status Card -->
+            <div class="status-card card shadow-sm mb-4" id="mainStatus">
+                <div class="card-body">
                     <div class="row">
-                        <!-- P1 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P1">
-                                <div class="floor-header bg-primary text-white">Floor P1</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P1-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P1-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P1-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="space-number" id="availableSpaces">--</div>
+                            <div class="text-muted">Available Spaces</div>
                         </div>
-
-                        <!-- P2 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P2">
-                                <div class="floor-header bg-primary text-white">Floor P2</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P2-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P2-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P2-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="space-number" id="occupiedSpaces">--</div>
+                            <div class="text-muted">Occupied Spaces</div>
                         </div>
-
-                        <!-- P3 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P3">
-                                <div class="floor-header bg-primary text-white">Floor P3</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P3-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P3-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P3-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- P4 Floor Card -->
-                        <div class="col-md-3 mb-3">
-                            <div class="floor-card shadow-sm" data-floor="P4">
-                                <div class="floor-header bg-primary text-white">Floor P4</div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <small class="text-muted">Available</small>
-                                            <div class="stats-value" id="P4-availableSpaces">6</div>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-muted">Occupied</small>
-                                            <div class="stats-value" id="P4-occupiedSpaces">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="progress">
-                                        <div class="progress-bar" id="P4-occupancyBar" role="progressbar" style="width: 0%"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="col-md-4 text-center mb-3">
+                            <div class="space-number" id="occupancyRate">--%</div>
+                            <div class="text-muted">Occupancy Rate</div>
                         </div>
                     </div>
-                    <div class="text-muted small mt-3">
+                    <div class="progress mb-3">
+                        <div class="progress-bar" id="occupancyBar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="text-muted small">
                         Last updated: <span id="lastUpdated">--</span>
                     </div>
                 </div>
@@ -246,16 +157,6 @@
                     <div id="reservationError" class="alert alert-danger" style="display:none;"></div>
                     <form id="reservationForm" class="mb-3">
                         <div class="row g-3">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Select Floor</label>
-                                <select class="form-control" id="floorSelect" required>
-                                    <option value="">Choose a floor...</option>
-                                    <option value="P1">P1</option>
-                                    <option value="P2">P2</option>
-                                    <option value="P3">P3</option>
-                                    <option value="P4">P4</option>
-                                </select>
-                            </div>
                             <div class="col-md-6">
                                 <label class="form-label">Start Time (EST)</label>
                                 <input type="datetime-local" 
@@ -313,8 +214,28 @@
                     </div>
                 </div>
             </div>
+            <!-- History Table Card -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Status History</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Available</th>
+                                    <th>Occupied</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTable">
+                                <!-- History will be inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-
         <!-- Analysis Page -->
         <div id="analysisPage" style="display: none;">
             <!-- Historical Analysis Card -->
@@ -338,14 +259,13 @@
                         </div>
                     </div>
         
-                    <!-- Chart container -->
+                    <!-- Chart container (initially hidden) -->
                     <div id="dashboard-container" style="display:none;">
                         <canvas id="dashboardCanvas"></canvas>
                     </div>
                 </div>
             </div>
-
-            <!-- Time Analysis Card -->
+            <!-- Time Analysis Card (moved inside analysisPage) -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Time Analysis</h5>
@@ -362,7 +282,6 @@
                 </div>
             </div>
         </div>
-
         <!-- My Reservations Page -->
         <div id="ReservationsPage" style="display: none;">
             <!-- Reservation Form Card -->
@@ -372,16 +291,6 @@
                     <div id="myReservationsError" class="alert alert-danger" style="display:none;"></div>
                     <form id="myReservationsForm" class="mb-3">
                         <div class="row g-3">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Select Floor</label>
-                                <select class="form-control" id="floorSelectReservations" required>
-                                    <option value="">Choose a floor...</option>
-                                    <option value="P1">P1</option>
-                                    <option value="P2">P2</option>
-                                    <option value="P3">P3</option>
-                                    <option value="P4">P4</option>
-                                </select>
-                            </div>
                             <div class="col-md-6">
                                 <label class="form-label">Start Time (EST)</label>
                                 <input type="datetime-local" 
