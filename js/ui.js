@@ -26,10 +26,10 @@ export function initializeUI() {
     });
 
     // Load initial data
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus) {
-        updateStatus(savedStatus);
-    }
+    // const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+   // if (savedStatus) {
+       // updateStatus(savedStatus);
+   // }
 
     const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
     if (savedHistory) {
