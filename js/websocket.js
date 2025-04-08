@@ -59,7 +59,7 @@ export function connect() {
                     console.log('Rate:', data.data?.occupancyRate + '%');
                     
                     if (data.data && typeof data.data.availableSpaces !== 'undefined') {
-                        updateStatus(data.data);
+                        updateStatus(data.data, 'heartbeat');
                         addToHistory(data.data);
                         console.log('Status Updated and Saved');
                         console.log('New Storage Status:', loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS));
