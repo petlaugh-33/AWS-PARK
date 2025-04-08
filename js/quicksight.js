@@ -78,3 +78,4 @@ export async function embedQuickSightDashboard(containerDiv, dashboardType) {
 
 export { getCurrentDate };
 
+

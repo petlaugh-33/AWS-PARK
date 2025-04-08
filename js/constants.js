@@ -37,3 +37,4 @@ export const CHART_TYPES = {
     WEEKLY: 'weekly',
     MONTHLY: 'monthly'
 };
+
