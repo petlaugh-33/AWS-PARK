@@ -185,9 +185,20 @@ export function initializeStorage() {
     };
 
     Object.entries(defaultValues).forEach(([key, value]) => {
-        if (!localStorage.getItem(key)) {
+        const existingData = loadFromLocalStorage(key);
+        if (existingData === null) {
+            console.log(`Storage: Initializing ${key} with default value:`, value);
             saveToLocalStorage(key, value);
+        } else {
+            console.log(`Storage: Keeping existing ${key} data:`, existingData);
         }
+    });
+
+    // Log current storage state
+    console.log('Storage initialized with:', {
+        currentStatus: loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS),
+        history: loadFromLocalStorage(STORAGE_KEYS.HISTORY),
+        chartType: loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE)
     });
 }
 

@@ -60,7 +60,8 @@ export function connect() {
                     if (data.data && typeof data.data.availableSpaces !== 'undefined') {
                         updateStatus(data.data);
                         addToHistory(data.data);
-                        console.log('[Status] Update completed');
+                        console.log('Status Updated and Saved');
+                        console.log('New Storage Status:', loadFromLocalStorage('currentStatus'));
                     } else {
                         console.error('[Status] Invalid data structure:', data);
                     }
