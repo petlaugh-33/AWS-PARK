@@ -11,6 +11,8 @@ function convertToEST(dateString) {
 
 // Initialize UI
 export function initializeUI() {
+    // Load last occupancy first
+    loadLastOccupancy();
     // Add tab event listeners
     document.getElementById('homeTab').addEventListener('click', (e) => {
         e.preventDefault();
@@ -53,6 +55,15 @@ export function switchTab(tabId) {
         link.classList.remove('active');
     });
     document.getElementById(tabId).classList.add('active');
+}
+
+// Add this function to load the last occupancy on initialization
+function loadLastOccupancy() {
+    const stored = localStorage.getItem('lastOccupancyUpdate');
+    if (stored) {
+        lastOccupancyUpdate = JSON.parse(stored);
+        console.log('Loaded previous occupancy:', lastOccupancyUpdate);
+    }
 }
 
 export function updateStatus(data) {
