@@ -2,6 +2,7 @@ import { STORAGE_KEYS, CHART_TYPES, API_ENDPOINT, MAX_HISTORY } from './constant
 import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 
 let occupancyChart = null;
+let lastOccupancyUpdate = null;
 
 function convertToEST(dateString) {
     const date = new Date(dateString);
