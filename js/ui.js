@@ -4,6 +4,8 @@ import { saveToLocalStorage, loadFromLocalStorage } from './storage.js';
 let occupancyChart = null;
 let lastOccupancyUpdate = null;
 let lastValidOccupancy = null;
+let lastUpdatedFrom = null;
+let lastUpdatedAt = 0;
 
 function convertToEST(dateString) {
     const date = new Date(dateString);
@@ -67,13 +69,26 @@ function loadLastOccupancy() {
     }
 }
 
-export function updateStatus(data) {
-    console.log('Updating status with data:', data);
-    
+export function updateStatus(data, source = 'unknown') {
+    const now = Date.now();
+
+    // Prevent stale heartbeat from overwriting recent API preload
+    if (source === 'heartbeat' && lastUpdatedFrom === 'api') {
+        if (now - lastUpdatedAt < 2000) {
+            console.log('[updateStatus] Skipping stale heartbeat update');
+            return;
+        }
+    }
+
+    lastUpdatedFrom = source;
+    lastUpdatedAt = now;
+
+    console.log(`[updateStatus] Applying update from ${source}`, data);
+
     // Check if this is an update we should process
     const isImageUpdate = data.lastAnalysis !== undefined;
     const isReservationUpdate = data.reservations !== undefined;
-    
+
     // If this update has valid occupancy, store it
     if (data.occupiedSpaces > 0) {
         lastValidOccupancy = {
@@ -82,7 +97,7 @@ export function updateStatus(data) {
             occupancyRate: data.occupancyRate
         };
     }
-    
+
     // If we're getting a zero update but have a valid previous occupancy
     if (data.occupiedSpaces === 0 && lastValidOccupancy && !isImageUpdate) {
         data = {
@@ -90,16 +105,16 @@ export function updateStatus(data) {
             ...lastValidOccupancy
         };
     }
-    
+
     const statusData = {
         ...data,
         availableSpaces: Number(data.availableSpaces),
         occupiedSpaces: Number(data.occupiedSpaces),
         occupancyRate: Number(data.occupancyRate)
     };
-    
+
     console.log('Processed status data:', statusData);
-    
+
     const mainStatus = document.getElementById('mainStatus');
     mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
 
@@ -110,16 +125,15 @@ export function updateStatus(data) {
     document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
     document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
     document.getElementById('lastUpdated').textContent = formatDateTime(statusData.lastUpdated);
-    
+
     const bar = document.getElementById('occupancyBar');
     bar.style.width = `${statusData.occupancyRate}%`;
-    
+
     updateOccupancyBarColor(bar, statusData.occupancyRate);
-    
-    // Update this line to use EST
+
     document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
         .toLocaleString('en-US', { timeZone: 'America/New_York' });
-    
+
     mainStatus.classList.add('update-animation');
     setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
 
