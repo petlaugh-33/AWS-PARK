@@ -14,29 +14,26 @@ function convertToEST(dateString) {
 
 // Initialize UI
 export function initializeUI() {
-    // Load last occupancy first
     loadLastOccupancy();
-    // Add tab event listeners
-    document.getElementById('homeTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('homeTab');
-    });
 
-    document.getElementById('analysisTab').addEventListener('click', (e) => {
-        e.preventDefault();
-        switchTab('analysisTab');
-    });
-
-    // Load initial data
-    // const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-   // if (savedStatus) {
-       // updateStatus(savedStatus);
-   // }
+    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (savedStatus && savedStatus.lastAnalysis) {
+        console.log('[initializeUI] Applying cached occupancy immediately:', savedStatus);
+        updateStatus(savedStatus, 'initial_load');
+    } else {
+        console.warn('[initializeUI] No valid cached status found; waiting for WebSocket.');
+    }
 
     const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
     if (savedHistory) {
         updateHistoryTable(savedHistory);
     }
+
+    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
+    loadHistoricalData(lastChartType);
+    switchTab('homeTab');
+    updateDataStorageTime();
+}
 
     // Initialize chart with last selected type
     const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
