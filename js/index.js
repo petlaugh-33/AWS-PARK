@@ -821,14 +821,14 @@ function initializeApp() {
     console.log('Initializing for user:', user.email);
 
     initializeStorage();
+    initializeUI();
+    initializeWebSocketWithAuth(); // Moved this up
 
     // Load saved status with direct key
     const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
     console.log('Loading saved status:', savedStatus);
-
-    initializeUI();
     
-    // Apply saved status after UI initialization
+    // Apply saved status after WebSocket initialization
     if (savedStatus && savedStatus.occupiedSpaces !== undefined) {
         console.log('Applying saved status:', savedStatus);
         setTimeout(() => updateStatus(savedStatus), 100);
@@ -836,7 +836,6 @@ function initializeApp() {
 
     initializeReservationSystem();
     updateUserInterface(user);
-    initializeWebSocketWithAuth();
 
     setInterval(cleanupStorageData, 60 * 60 * 1000);
     setupTabNavigation();
