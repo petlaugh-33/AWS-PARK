@@ -59,18 +59,18 @@ export function updateStatus(data) {
     
     // Check if this is an image processing update
     const isImageUpdate = data.lastAnalysis !== undefined;
-    const isInitialLoad = data.initialLoad === true;  // Add this line
-    console.log('Update type:', isImageUpdate ? 'Image Processing' : isInitialLoad ? 'Initial Load' : 'Storage Update');
+    console.log('Update type:', isImageUpdate ? 'Image Processing' : 'Storage Update');
     
-    // Get current stored status
-    const currentStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    // Store the last update with actual occupancy
+    if (isImageUpdate && data.occupiedSpaces > 0) {
+        lastOccupancyUpdate = { ...data };
+        console.log('Stored last occupancy update:', lastOccupancyUpdate);
+    }
     
-    // Always apply image updates and initial loads, otherwise check occupancy
-    if (!isImageUpdate && !isInitialLoad && currentStatus) {
-        if (Number(currentStatus.occupiedSpaces) > Number(data.occupiedSpaces)) {
-            console.log('Keeping existing higher occupancy:', currentStatus.occupiedSpaces);
-            return;
-        }
+    // If we're getting a zero occupancy update but have a stored non-zero update, use the stored update
+    if (data.occupiedSpaces === 0 && lastOccupancyUpdate) {
+        console.log('Using stored occupancy data instead of zero update');
+        data = lastOccupancyUpdate;
     }
     
     // Create a copy of the data and ensure numbers are valid
