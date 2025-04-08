@@ -832,15 +832,17 @@ async function initializeApp() {
     console.log('Initializing for user:', user.email);
 
     initializeStorage();
-    initializeUI();
 
     // ✅ Load image-based status from localStorage first
     const cachedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (cachedStatus) {
+    if (cachedStatus && cachedStatus.lastAnalysis) {
         console.log('[App] Using cached image status:', cachedStatus);
         updateStatus(cachedStatus, 'local');
+    } else {
+        console.warn('[App] No valid cached status found; waiting for WebSocket.');
     }
 
+    initializeUI(); // ✅ Now called AFTER applying cached status
     initializeWebSocketWithAuth();
     initializeReservationSystem();
     updateUserInterface(user);
@@ -850,7 +852,6 @@ async function initializeApp() {
 
     console.log('Application initialization complete.');
 }
-
 // function setupTabNavigation() {
 //     const homeTab = document.getElementById('homeTab');
 //     const analysisTab = document.getElementById('analysisTab');
