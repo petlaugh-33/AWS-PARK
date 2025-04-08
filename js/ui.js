@@ -59,13 +59,14 @@ export function updateStatus(data) {
     
     // Check if this is an image processing update
     const isImageUpdate = data.lastAnalysis !== undefined;
-    console.log('Update type:', isImageUpdate ? 'Image Processing' : 'Storage Update');
+    const isInitialLoad = data.initialLoad === true;  // Add this line
+    console.log('Update type:', isImageUpdate ? 'Image Processing' : isInitialLoad ? 'Initial Load' : 'Storage Update');
     
     // Get current stored status
     const currentStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
     
-    // Always apply image updates, otherwise check timestamps
-    if (!isImageUpdate && currentStatus) {
+    // Always apply image updates and initial loads, otherwise check occupancy
+    if (!isImageUpdate && !isInitialLoad && currentStatus) {
         if (Number(currentStatus.occupiedSpaces) > Number(data.occupiedSpaces)) {
             console.log('Keeping existing higher occupancy:', currentStatus.occupiedSpaces);
             return;

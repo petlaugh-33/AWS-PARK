@@ -831,7 +831,7 @@ function initializeApp() {
     // Apply saved status after WebSocket initialization
     if (savedStatus && savedStatus.occupiedSpaces !== undefined) {
         console.log('Applying saved status:', savedStatus);
-        setTimeout(() => updateStatus(savedStatus), 100);
+        setTimeout(() => updateStatus({...savedStatus, initialLoad: true}), 100);
     }
 
     initializeReservationSystem();
