@@ -54,9 +54,19 @@ export function switchTab(tabId) {
     document.getElementById(tabId).classList.add('active');
 }
 
-// Update parking status
 export function updateStatus(data) {
     console.log('Updating status with data:', data);
+    
+    // Get current stored status and check timestamps
+    const currentStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (currentStatus && currentStatus.lastUpdated && data.lastUpdated) {
+        const currentTime = new Date(currentStatus.lastUpdated);
+        const newTime = new Date(data.lastUpdated);
+        if (newTime < currentTime) {
+            console.log('Skipping older update:', data);
+            return;
+        }
+    }
     
     // Create a copy of the data and ensure numbers are valid
     const statusData = {
