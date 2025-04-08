@@ -57,29 +57,42 @@ export function switchTab(tabId) {
 // Update parking status
 export function updateStatus(data) {
     console.log('Updating status with data:', data);
+    
+    // Create a copy of the data and ensure numbers are valid
+    const statusData = {
+        ...data,
+        availableSpaces: Number(data.availableSpaces),
+        occupiedSpaces: Number(data.occupiedSpaces),
+        occupancyRate: Number(data.occupancyRate)
+    };
+    
+    console.log('Processed status data:', statusData);
+    
     const mainStatus = document.getElementById('mainStatus');
-    mainStatus.className = `status-card card shadow-sm mb-4 status-${data.parkingStatus}`;
+    mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
 
-    // Add this line to update reservation stats
-    updateReservationStats(data);
+    // Update reservation stats
+    updateReservationStats(statusData);
 
-    document.getElementById('availableSpaces').textContent = data.availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = data.occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${data.occupancyRate}%`;
-    document.getElementById('lastUpdated').textContent = formatDateTime(data.lastUpdated);
+    document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
+    document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
+    document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
+    document.getElementById('lastUpdated').textContent = formatDateTime(statusData.lastUpdated);
     
     const bar = document.getElementById('occupancyBar');
-    bar.style.width = `${data.occupancyRate}%`;
+    bar.style.width = `${statusData.occupancyRate}%`;
     
-    updateOccupancyBarColor(bar, data.occupancyRate);
+    updateOccupancyBarColor(bar, statusData.occupancyRate);
     
     // Update this line to use EST
-    document.getElementById('lastUpdated').textContent = new Date(data.lastUpdated).toLocaleString('en-US', { timeZone: 'America/New_York' });
+    document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
+        .toLocaleString('en-US', { timeZone: 'America/New_York' });
     
     mainStatus.classList.add('update-animation');
     setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
 
-    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
+    // Save the processed data
+    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, statusData);
     updateDataStorageTime();
 }
 
