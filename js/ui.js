@@ -73,19 +73,24 @@ export function updateStatus(data, source = 'unknown') {
     const now = Date.now();
     const isImageUpdate = data.lastAnalysis !== undefined;
 
-    if (source === 'heartbeat' && !isImageUpdate) {
-        console.log('[updateStatus] Skipping non-image heartbeat update');
-        return;
+    // Immediately discard non-image updates that could cause flicker
+    if (!isImageUpdate && data.occupiedSpaces === 0) {
+        if (lastValidOccupancy) {
+            console.warn('[updateStatus] 🚫 Ignored non-image occupancy=0 update to avoid flicker.');
+            data = {
+                ...data,
+                ...lastValidOccupancy
+            };
+        } else {
+            console.warn('[updateStatus] ⚠️ No valid occupancy data available, skipping update.');
+            return;  // No valid data yet, prevent UI flicker
+        }
     }
 
     lastUpdatedFrom = source;
     lastUpdatedAt = now;
 
     console.log(`[updateStatus] Applying update from ${source}`, data);
-
-    if (data.occupiedSpaces === 0 && !data.lastAnalysis) {
-    console.warn('[updateStatus] ⚠️  Applying 0 occupancy with no lastAnalysis — POTENTIAL FLICKER');
-}
 
     // If valid image analysis, store as latest
     if (isImageUpdate) {
@@ -95,7 +100,6 @@ export function updateStatus(data, source = 'unknown') {
             occupancyRate: data.occupancyRate
         };
 
-        // Save to localStorage
         saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
             occupiedSpaces: data.occupiedSpaces,
             availableSpaces: data.availableSpaces,
@@ -107,14 +111,7 @@ export function updateStatus(data, source = 'unknown') {
         });
     }
 
-    // If we get a 0 update, fallback to image result
-    if (data.occupiedSpaces === 0 && lastValidOccupancy && !isImageUpdate) {
-        data = {
-            ...data,
-            ...lastValidOccupancy
-        };
-    }
-
+    // Continue with UI update logic
     const statusData = {
         ...data,
         availableSpaces: Number(data.availableSpaces),
@@ -122,13 +119,7 @@ export function updateStatus(data, source = 'unknown') {
         occupancyRate: Number(data.occupancyRate)
     };
 
-    console.log('Processed status data:', statusData);
-
-    const mainStatus = document.getElementById('mainStatus');
-    mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
-
     updateReservationStats(statusData);
-
     document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
     document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
     document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
@@ -140,6 +131,8 @@ export function updateStatus(data, source = 'unknown') {
     document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
         .toLocaleString('en-US', { timeZone: 'America/New_York' });
 
+    const mainStatus = document.getElementById('mainStatus');
+    mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
     mainStatus.classList.add('update-animation');
     setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
 
