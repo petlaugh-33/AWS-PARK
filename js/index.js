@@ -812,12 +812,11 @@ async function preloadStatus() {
         if (!response.ok) throw new Error('Failed to fetch status');
         const data = await response.json();
         console.log('[Preload] Parking status:', data);
-        updateStatus({ ...data, initialLoad: true }, 'api');
+        updateStatus(data, 'api');
     } catch (error) {
         console.error('[Preload] Error fetching parking status:', error);
     }
 }
-
 
 async function initializeApp() {
     console.log('Initializing application...');
@@ -835,13 +834,17 @@ async function initializeApp() {
     initializeStorage();
     initializeUI();
 
-    // ✅ Load real-time parking status from backend
+    // ✅ Load image-based status from localStorage first
+    const cachedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (cachedStatus) {
+        console.log('[App] Using cached image status:', cachedStatus);
+        updateStatus(cachedStatus, 'local');
+    }
+
+    // ✅ Fetch current status from API (only applies if newer)
     await preloadStatus();
 
-    // ✅ Start real-time updates after status is loaded
     initializeWebSocketWithAuth();
-
-    // ✅ Initialize other modules
     initializeReservationSystem();
     updateUserInterface(user);
 
@@ -850,7 +853,6 @@ async function initializeApp() {
 
     console.log('Application initialization complete.');
 }
-
 
 // function setupTabNavigation() {
 //     const homeTab = document.getElementById('homeTab');
