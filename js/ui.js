@@ -150,17 +150,6 @@ export function updateStatus(data, source = 'unknown') {
     applyStatusFromLocalStorage();
 }
 
-        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
-            occupiedSpaces: data.occupiedSpaces,
-            availableSpaces: data.availableSpaces,
-            occupancyRate: data.occupancyRate,
-            parkingStatus: data.parkingStatus,
-            lastUpdated: data.lastUpdated,
-            lotId: data.lotId,
-            lastAnalysis: data.lastAnalysis
-        });
-    }
-
     // Continue with UI update logic
     const statusData = {
         ...data,
