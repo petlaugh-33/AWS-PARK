@@ -56,21 +56,28 @@ export function connect() {
 
                 if (data.type === 'status_update') {
                     const statusData = data.data;
+                    const isImageUpdate = statusData?.lastAnalysis !== undefined;
 
                     console.log('Available:', statusData?.availableSpaces);
                     console.log('Occupied:', statusData?.occupiedSpaces);
                     console.log('Rate:', statusData?.occupancyRate + '%');
-                    console.log('Has lastAnalysis?', !!statusData?.lastAnalysis);
+                    console.log('Has lastAnalysis?', isImageUpdate);
 
-                    if (statusData && statusData.lastAnalysis) {
+                    if (isImageUpdate) {
                         console.log('[WebSocket] ✅ Applying image-based status update');
-                        updateStatus(statusData, 'image');
-                        addToHistory(statusData);
+                        updateStatus(statusData, 'image'); // UI update
                     } else {
-                        console.warn('[WebSocket] ⛔ Ignoring non-image status update');
+                        console.log('[WebSocket] 💾 Heartbeat - saving to localStorage only');
+                        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
+                            ...statusData,
+                            lastUpdated: new Date().toISOString()
+                        });
                     }
 
-                } else if (data.type === 'reservation_update') {
+                    addToHistory(statusData); // always update history
+                }
+
+                else if (data.type === 'reservation_update') {
                     console.log(`[${timestamp}] RESERVATION UPDATE:`);
                     console.log('Action:', data.action);
 
@@ -80,6 +87,7 @@ export function connect() {
                         updateParkingStatus();
                     }
                 }
+
             } catch (error) {
                 console.error('Error processing message:', error);
                 console.error('Raw message:', event.data);
@@ -93,6 +101,7 @@ export function connect() {
         connectionStatus.textContent = 'Failed to create connection';
     }
 }
+
 
 export function startHeartbeat() {
     setInterval(() => {
