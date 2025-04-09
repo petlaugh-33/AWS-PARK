@@ -15,31 +15,22 @@ function convertToEST(dateString) {
 // Initialize UI
 
 export function initializeUI() {
-    // Load the previously saved occupancy data if it exists
+    // Load any last occupancy data (if needed)
     loadLastOccupancy();
-
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus && savedStatus.lastAnalysis) {
-        console.log('[initializeUI] Applying cached occupancy immediately:', savedStatus);
-        updateStatus(savedStatus, 'initial_load');
-    } else {
-        console.warn('[initializeUI] No valid cached status found; waiting for WebSocket.');
-    }
-
-    // Load and update the history table from local storage if available
+    
+    // History and chart updates
     const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
     if (savedHistory) {
         updateHistoryTable(savedHistory);
     }
-
-    // Load historical data using the last selected chart type (or default to DAILY)
+    
     const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
     loadHistoricalData(lastChartType);
 
-    // Set the initial active tab (e.g., home)
+    // Set the initial active tab to 'home'
     switchTab('homeTab');
 
-    // Update the UI element showing when local storage was last updated
+    // Update the UI element that shows when data was last updated
     updateDataStorageTime();
 }
 
