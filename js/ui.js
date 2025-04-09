@@ -126,49 +126,66 @@ export function updateStatus(data, source = 'unknown') {
     const now = Date.now();
     const isImageUpdate = data.lastAnalysis !== undefined;
 
-    // Immediately discard non-image updates that could cause flicker
-    if (!isImageUpdate && data.occupiedSpaces === 0) {
-        if (lastValidOccupancy) {
-            console.warn('[updateStatus] 🚫 Ignored non-image occupancy=0 update to avoid flicker.');
-            data = {
-                ...data,
-                ...lastValidOccupancy
-            };
-        } else {
-            console.warn('[updateStatus] ⚠️ No valid occupancy data available, skipping update.');
-            return;  // No valid data yet, prevent UI flicker
-        }
-    }
-
     lastUpdatedFrom = source;
     lastUpdatedAt = now;
 
     console.log(`[updateStatus] Applying update from ${source}`, data);
 
-    // On valid image-based updates, store the status as the latest state.
-    if (isImageUpdate) {
-        lastValidOccupancy = {
-            occupiedSpaces: data.occupiedSpaces,
-            availableSpaces: data.availableSpaces,
-            occupancyRate: data.occupancyRate
-        };
+    // 💾 Save any status update to localStorage
+    const localData = {
+        occupiedSpaces: data.occupiedSpaces,
+        availableSpaces: data.availableSpaces,
+        occupancyRate: data.occupancyRate,
+        parkingStatus: data.parkingStatus,
+        lastUpdated: data.lastUpdated,
+        lotId: data.lotId,
+        lastAnalysis: data.lastAnalysis || null
+    };
+    saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, localData);
 
-        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
-            occupiedSpaces: data.occupiedSpaces,
-            availableSpaces: data.availableSpaces,
-            occupancyRate: data.occupancyRate,
-            parkingStatus: data.parkingStatus,
-            lastUpdated: data.lastUpdated,
-            lotId: data.lotId,
-            lastAnalysis: data.lastAnalysis
-        });
-    } else {
-        // Optionally, you might update local storage even for heartbeat updates if they pass validation.
-        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
+    // 🛑 Only image-based updates modify the UI
+    if (!isImageUpdate) {
+        console.log('[updateStatus] Skipping UI update for non-image update');
+        return;
     }
 
-    // Now update the UI based solely on what's in local storage.
-    applyStatusFromLocalStorage();
+    // ✅ Update last known image status
+    lastValidOccupancy = {
+        occupiedSpaces: data.occupiedSpaces,
+        availableSpaces: data.availableSpaces,
+        occupancyRate: data.occupancyRate
+    };
+
+    // 👷‍♂️ Format UI status data
+    const statusData = {
+        ...data,
+        availableSpaces: Number(data.availableSpaces),
+        occupiedSpaces: Number(data.occupiedSpaces),
+        occupancyRate: Number(data.occupancyRate)
+    };
+
+    console.log('Processed status data:', statusData);
+
+    const mainStatus = document.getElementById('mainStatus');
+    mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
+
+    updateReservationStats(statusData);
+
+    document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
+    document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
+    document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
+
+    const bar = document.getElementById('occupancyBar');
+    bar.style.width = `${statusData.occupancyRate}%`;
+    updateOccupancyBarColor(bar, statusData.occupancyRate);
+
+    document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
+        .toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+    mainStatus.classList.add('update-animation');
+    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+
+    updateDataStorageTime();
 }
 
 
