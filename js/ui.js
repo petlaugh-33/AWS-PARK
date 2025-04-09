@@ -79,13 +79,31 @@ export function updateStatus(data, source = 'unknown') {
 
     console.log(`[updateStatus] Applying update from ${source}`, data);
 
-    // If valid image analysis, store as latest
+    // On valid image-based updates, store the status as the latest state.
     if (isImageUpdate) {
         lastValidOccupancy = {
             occupiedSpaces: data.occupiedSpaces,
             availableSpaces: data.availableSpaces,
             occupancyRate: data.occupancyRate
         };
+
+        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
+            occupiedSpaces: data.occupiedSpaces,
+            availableSpaces: data.availableSpaces,
+            occupancyRate: data.occupancyRate,
+            parkingStatus: data.parkingStatus,
+            lastUpdated: data.lastUpdated,
+            lotId: data.lotId,
+            lastAnalysis: data.lastAnalysis
+        });
+    } else {
+        // Optionally, you might update local storage even for heartbeat updates if they pass validation.
+        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, data);
+    }
+
+    // Now update the UI based solely on what's in local storage.
+    applyStatusFromLocalStorage();
+}
 
         saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
             occupiedSpaces: data.occupiedSpaces,
