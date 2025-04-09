@@ -1,6 +1,6 @@
-import { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS, STORAGE_KEYS } from './constants.js';
+import { WEBSOCKET_URL, MAX_RECONNECT_ATTEMPTS } from './constants.js';
 import { updateStatus, addToHistory } from './ui.js';
-import { loadFromLocalStorage, saveToLocalStorage } from './storage.js';
+import { loadUserReservations } from './reservations.js';
 
 let socket;
 let isConnecting = false;
@@ -69,7 +69,6 @@ export function connect() {
 
                 if (data.type === 'status_update') {
                     const statusData = data.data;
-
                     console.log('Available:', statusData?.availableSpaces);
                     console.log('Occupied:', statusData?.occupiedSpaces);
                     console.log('Rate:', statusData?.occupancyRate + '%');
@@ -80,18 +79,16 @@ export function connect() {
                         updateStatus(statusData, 'image');
                         addToHistory(statusData);
                     } else {
-                        console.log('[WebSocket] 💾 Caching non-image status to storage only');
-                        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, statusData);
+                        console.warn('[WebSocket] ⛔ Ignoring non-image status update');
                     }
                 }
 
                 else if (data.type === 'reservation_update') {
                     console.log(`[WebSocket] 📢 Reservation Update: ${data.action}`);
                     loadUserReservations();
-                    if (data.action === 'create' || data.action === 'cancel') {
-                        console.log('[WebSocket] 🔄 Triggering parking status update');
-                        updateParkingStatus();
-                    }
+
+                    // ❌ Removed updateParkingStatus to prevent UI flicker
+                    // If needed: we can update reservation stats in storage without touching UI
                 }
 
             } catch (error) {
@@ -111,13 +108,12 @@ export function connect() {
     }
 }
 
-
 export function startHeartbeat() {
     setInterval(() => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ action: 'heartbeat' }));
         }
-    }, 30000); // 30 seconds
+    }, 30000);
 }
 
 export function monitorConnection() {
@@ -125,94 +121,16 @@ export function monitorConnection() {
         if (socket && socket.readyState !== WebSocket.OPEN && !isConnecting) {
             connect();
         }
-    }, 5000); // 5 seconds
+    }, 5000);
 }
 
 export function manualReconnect() {
-    console.log('Manual reconnection requested');
+    console.log('[WebSocket] 🔁 Manual reconnect triggered');
     reconnectAttempts = 0;
-    if (socket) {
-        socket.close();
-    }
+    if (socket) socket.close();
     connect();
 }
 
-window.manualReconnect = manualReconnect;
-
-export function getConnectionState() {
-    if (!socket) return 'CLOSED';
-
-    switch (socket.readyState) {
-        case WebSocket.CONNECTING:
-            return 'CONNECTING';
-        case WebSocket.OPEN:
-            return 'OPEN';
-        case WebSocket.CLOSING:
-            return 'CLOSING';
-        case WebSocket.CLOSED:
-            return 'CLOSED';
-        default:
-            return 'UNKNOWN';
-    }
-}
-
-export function sendMessage(message) {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-        try {
-            socket.send(JSON.stringify(message));
-            return true;
-        } catch (error) {
-            console.error('Error sending message:', error);
-            return false;
-        }
-    }
-    return false;
-}
-
 export function closeConnection() {
-    if (socket) {
-        try {
-            socket.close();
-            return true;
-        } catch (error) {
-            console.error('Error closing connection:', error);
-            return false;
-        }
-    }
-    return false;
+    if (socket) socket.close();
 }
-
-export function resetConnectionAttempts() {
-    reconnectAttempts = 0;
-}
-
-export function isConnected() {
-    return socket && socket.readyState === WebSocket.OPEN;
-}
-
-export function initializeWebSocket(customHandlers = {}) {
-    if (customHandlers.onMessage) {
-        const originalOnMessage = socket.onmessage;
-        socket.onmessage = (event) => {
-            originalOnMessage(event);
-            customHandlers.onMessage(event);
-        };
-    }
-
-    if (customHandlers.onClose) {
-        const originalOnClose = socket.onclose;
-        socket.onclose = (event) => {
-            originalOnClose(event);
-            customHandlers.onClose(event);
-        };
-    }
-
-    if (customHandlers.onError) {
-        const originalOnError = socket.onerror;
-        socket.onerror = (error) => {
-            originalOnError(error);
-            customHandlers.onError(error);
-        };
-    }
-}
-
