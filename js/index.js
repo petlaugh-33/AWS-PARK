@@ -844,24 +844,19 @@ async function initializeApp() {
     console.log('Initializing for user:', user.email);
 
     initializeStorage();
+    initializeUI();
 
-    // Add connection status to the page - ADD THIS BLOCK
-    const homePage = document.getElementById('homePage');
-    if (homePage) {
-        const statusCard = createConnectionStatusElement();
-        homePage.insertBefore(statusCard, homePage.firstChild);
-    }
-
-    // ✅ Load image-based status from localStorage first
+    // ✅ Use only cached image-based status
     const cachedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
     if (cachedStatus && cachedStatus.lastAnalysis) {
         console.log('[App] Using cached image status:', cachedStatus);
         updateStatus(cachedStatus, 'local');
     } else {
-        console.warn('[App] No valid cached status found; waiting for WebSocket.');
+        console.log('[App] No valid cached image status, skipping UI preload');
+        // Optional fallback if you still want to call the API once:
+        // await preloadStatus();
     }
 
-    initializeUI(); // ✅ Now called AFTER applying cached status
     initializeWebSocketWithAuth();
     initializeReservationSystem();
     updateUserInterface(user);
@@ -871,6 +866,7 @@ async function initializeApp() {
 
     console.log('Application initialization complete.');
 }
+
 // function setupTabNavigation() {
 //     const homeTab = document.getElementById('homeTab');
 //     const analysisTab = document.getElementById('analysisTab');
