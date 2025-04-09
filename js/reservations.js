@@ -87,7 +87,6 @@ export async function handleReservationSubmit(event) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
 
-        // Get next available spot
         const nextSpot = await getNextAvailableSpot(startTime, endTime);
 
         const requestData = {
@@ -108,7 +107,7 @@ export async function handleReservationSubmit(event) {
             body: JSON.stringify(requestData),
             credentials: 'include'
         });
-        
+
         if (response.status === 401) {
             redirectToLogin();
             return;
@@ -134,11 +133,11 @@ export async function handleReservationSubmit(event) {
                 console.error('Email confirmation error:', emailError);
             }
         }
-        
+
         form.reset();
         showSuccessMessage('Reservation created successfully! Check your email for confirmation.');
         await loadUserReservations();
-        
+
     } catch (error) {
         console.error('Reservation error:', error);
         showErrorMessage(error.message || 'Failed to create reservation');
@@ -169,7 +168,7 @@ async function getNextAvailableSpot(startTime, endTime) {
                 return spot;
             }
         }
-        
+
         throw new Error('No parking spots available for the selected time period');
     } catch (error) {
         console.error('Error getting next available spot:', error);
@@ -265,7 +264,6 @@ export async function loadUserReservations() {
 
         updateReservationTables(reservations);
         updateReservationStatistics(reservations);
-        updateParkingStatus(reservations);
 
         reservationsCache.clear();
         reservations.forEach(reservation => {
@@ -273,46 +271,13 @@ export async function loadUserReservations() {
         });
         
         saveToLocalStorage('userReservations', reservations);
-        
+
         return reservations;
     } catch (error) {
         console.error('Error loading reservations:', error);
         showErrorMessage('Failed to load reservations. Please try again later.');
         return [];
     }
-}
-
-function updateParkingStatus(reservations) {
-    const now = new Date();
-    
-    const occupiedSpaces = reservations.filter(reservation => {
-        const startTime = new Date(reservation.startTime);
-        const endTime = new Date(reservation.endTime);
-        return startTime <= now && endTime > now && reservation.status === 'CONFIRMED';
-    }).length;
-
-    const availableSpaces = Math.max(0, TOTAL_PARKING_SPOTS - occupiedSpaces);
-    const occupancyRate = Math.round((occupiedSpaces / TOTAL_PARKING_SPOTS) * 100);
-
-    document.getElementById('availableSpaces').textContent = availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${occupancyRate}%`;
-    
-    const occupancyBar = document.getElementById('occupancyBar');
-    if (occupancyBar) {
-        occupancyBar.style.width = `${occupancyRate}%`;
-        occupancyBar.setAttribute('aria-valuenow', occupancyRate);
-    }
-
-    const edtTime = new Date().toLocaleString('en-US', {
-        timeZone: 'America/New_York',
-        hour12: true,
-        hour: 'numeric',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short'
-    });
-    document.getElementById('lastUpdated').textContent = edtTime;
 }
 
 function updateReservationTables(reservations) {
