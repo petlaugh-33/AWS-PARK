@@ -105,7 +105,7 @@ function applyStatusFromLocalStorage() {
     // Update the UI elements
     document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
     document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
+    document.getElementById('occupancyRate').textContent = `${Math.round(statusData.occupancyRate)}%`;
     
     const bar = document.getElementById('occupancyBar');
     bar.style.width = `${statusData.occupancyRate}%`;
