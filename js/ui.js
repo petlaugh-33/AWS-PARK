@@ -150,33 +150,6 @@ export function updateStatus(data, source = 'unknown') {
     applyStatusFromLocalStorage();
 }
 
-    // Continue with UI update logic
-    const statusData = {
-        ...data,
-        availableSpaces: Number(data.availableSpaces),
-        occupiedSpaces: Number(data.occupiedSpaces),
-        occupancyRate: Number(data.occupancyRate)
-    };
-
-    updateReservationStats(statusData);
-    document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
-    document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
-    document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
-
-    const bar = document.getElementById('occupancyBar');
-    bar.style.width = `${statusData.occupancyRate}%`;
-    updateOccupancyBarColor(bar, statusData.occupancyRate);
-
-    document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
-        .toLocaleString('en-US', { timeZone: 'America/New_York' });
-
-    const mainStatus = document.getElementById('mainStatus');
-    mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
-    mainStatus.classList.add('update-animation');
-    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
-
-    updateDataStorageTime();
-}
 
 // Add this function to your ui.js
 function updateReservationStats(status) {
