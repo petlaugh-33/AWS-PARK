@@ -74,6 +74,23 @@
             margin-left: -11px;  /* Changed to negative value */
             align-items: center;
         }
+         /* ... your existing styles ... */
+        .alert-amazon {
+            background-color: #0c253b; /* Match your navbar color */
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+        }
+
+        .alert-amazon .alert-heading {
+            color: white;
+            font-weight: 500;
+        }
+
+        /* Optional: Add a subtle box shadow */
+        .alert-amazon {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
 
     </style>
 </head>
@@ -149,7 +166,7 @@
         <!-- Home Page -->
         <div id="homePage">
             <!-- Welcome Message -->
-            <div class="alert alert-info mb-4">
+            <div class="alert alert-amazon mb-4">
                 <h4 class="alert-heading">Welcome to AmazonPark!</h4>
                 <p>Check the current parking status below or use the navigation to make reservations and view analytics.</p>
             </div>
