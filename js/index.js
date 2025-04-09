@@ -818,6 +818,26 @@ async function preloadStatus() {
     }
 }
 
+// Add this function near the top with your other function declarations
+function createConnectionStatusElement() {
+    const statusCard = document.createElement('div');
+    statusCard.className = 'card shadow-sm mb-4';
+    statusCard.innerHTML = `
+        <div class="card-body p-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <small class="text-muted me-2">Connection:</small>
+                    <div id="connectionStatus" class="badge bg-secondary">Connecting...</div>
+                </div>
+                <button class="btn btn-link btn-sm p-0" onclick="window.manualReconnect()">
+                    Reconnect
+                </button>
+            </div>
+        </div>
+    `;
+    return statusCard;
+}
+
 async function initializeApp() {
     console.log('Initializing application...');
 
@@ -832,6 +852,13 @@ async function initializeApp() {
     console.log('Initializing for user:', user.email);
 
     initializeStorage();
+
+    // Add connection status to the page - ADD THIS BLOCK
+    const homePage = document.getElementById('homePage');
+    if (homePage) {
+        const statusCard = createConnectionStatusElement();
+        homePage.insertBefore(statusCard, homePage.firstChild);
+    }
 
     // ✅ Load image-based status from localStorage first
     const cachedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
