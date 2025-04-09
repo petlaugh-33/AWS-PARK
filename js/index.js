@@ -954,13 +954,33 @@ window.addEventListener('error', (event) => {
     handleError(event.error);
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM Content Loaded. Starting app initialization...');
-    try {
-        initializeApp();
-    } catch (error) {
-        handleError(error);
+
+    // Try to load the cached status from local storage
+    let cachedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    
+    // If a cached status exists, update the UI immediately.
+    if (cachedStatus && cachedStatus.lastAnalysis) {
+        console.log('[App] Using cached status:', cachedStatus);
+        updateStatus(cachedStatus, 'local');
+    } else {
+        // Otherwise, call your API preload to fetch current status from the backend.
+        try {
+            const response = await fetch('https://wszwvwc915.execute-api.us-east-1.amazonaws.com/prod/status');
+            if (!response.ok) {
+                throw new Error('Failed to fetch status');
+            }
+            const data = await response.json();
+            console.log('[Preload] Fetched current status:', data);
+            updateStatus(data, 'api_preload');
+        } catch (error) {
+            console.error('[Preload] Error fetching current status:', error);
+        }
     }
+
+    // Proceed with the rest of your initialization
+    initializeApp();
 });
 
 window.addEventListener('beforeunload', () => {
