@@ -818,21 +818,13 @@ async function preloadStatus() {
     }
 }
 
-// Add this function near the top with your other function declarations
 function createConnectionStatusElement() {
     const statusCard = document.createElement('div');
-    statusCard.className = 'card shadow-sm mb-4';
+    statusCard.className = 'small text-end mb-2';
     statusCard.innerHTML = `
-        <div class="card-body p-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <small class="text-muted me-2">Connection:</small>
-                    <div id="connectionStatus" class="badge bg-secondary">Connecting...</div>
-                </div>
-                <button class="btn btn-link btn-sm p-0" onclick="window.manualReconnect()">
-                    Reconnect
-                </button>
-            </div>
+        <div class="d-flex justify-content-end align-items-center">
+            <small class="text-muted me-2">Connection:</small>
+            <div id="connectionStatus" class="badge bg-secondary">Connecting...</div>
         </div>
     `;
     return statusCard;
