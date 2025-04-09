@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AmazonPark Login</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -12,39 +18,218 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: #F4F4F4;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #232f3e 0%, #3f5973 100%);
+            position: relative;
+            overflow: hidden;
         }
+
+        /* Floating Circles Animation */
+        .circles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .circles li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            animation: animate 25s linear infinite;
+            bottom: -150px;
+            border-radius: 50%;
+        }
+
+        .circles li:nth-child(1) {
+            left: 25%;
+            width: 80px;
+            height: 80px;
+            animation-delay: 0s;
+        }
+
+        .circles li:nth-child(2) {
+            left: 10%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 2s;
+            animation-duration: 12s;
+        }
+
+        .circles li:nth-child(3) {
+            left: 70%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 4s;
+        }
+
+        .circles li:nth-child(4) {
+            left: 40%;
+            width: 60px;
+            height: 60px;
+            animation-delay: 0s;
+            animation-duration: 18s;
+        }
+
+        .circles li:nth-child(5) {
+            left: 65%;
+            width: 20px;
+            height: 20px;
+            animation-delay: 0s;
+        }
+
+        @keyframes animate {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+                border-radius: 0;
+            }
+            100% {
+                transform: translateY(-1000px) rotate(720deg);
+                opacity: 0;
+                border-radius: 50%;
+            }
+        }
+
         .login-container {
             text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        .login-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .logo-container {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
         }
+
+        .logo-container:hover {
+            transform: scale(1.05);
+        }
+
+        .logo {
+            width: 180px;
+            height: auto;
+            display: block;
+        }
+
         .login-container h1 {
-            margin-bottom: 20px;
+            margin: 20px 0;
+            color: #232f3e;
+            font-size: 24px;
+            font-weight: 600;
         }
-        .login-container button {
-            padding: 10px 20px;
+
+        .login-text {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        #loginButton {
+            padding: 12px 30px;
             font-size: 16px;
             color: white;
-            background-color: #007BFF;
+            background-color: #232f3e;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
+            width: 100%;
+            max-width: 250px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: 500;
+            letter-spacing: 0.5px;
         }
-        .login-container button:hover {
-            background-color: #0056B3;
+
+        #loginButton:hover {
+            background-color: #1a242f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #loginButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Animation for the container */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-container {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+
+            .logo {
+                width: 150px;
+            }
+
+            .login-container h1 {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Background Animations -->
+    <ul class="circles">
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+        <li></li>
+    </ul>
+
+    <!-- Login Container -->
     <div class="login-container">
-        <h1>AmazonPark Login</h1>
-        <p>Please click the button below to log in.</p>
+        <div class="logo-container">
+            <img src="https://amazonpark-logo.s3.us-east-1.amazonaws.com/logo.PNG" 
+                 alt="AmazonPark Logo" 
+                 class="logo">
+        </div>
+        <h1>Welcome to AmazonPark</h1>
+        <p class="login-text">Sign in to manage your parking reservations</p>
         <button id="loginButton">Login with Cognito</button>
     </div>
+
     <script type="module">
         import { clientId, cognitoDomain, redirectUri, exchangeCodeForTokens } from './js/auth.js';
     
@@ -82,6 +267,5 @@
     
         checkAuth();
     </script>
-   
 </body>
 </html>
