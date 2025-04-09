@@ -56,6 +56,43 @@ function loadLastOccupancy() {
     }
 }
 
+function applyStatusFromLocalStorage() {
+    const storedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (!storedStatus) {
+        console.warn('No status found in local storage to apply.');
+        return;
+    }
+
+    // Convert values to numbers if needed
+    const statusData = {
+        ...storedStatus,
+        availableSpaces: Number(storedStatus.availableSpaces),
+        occupiedSpaces: Number(storedStatus.occupiedSpaces),
+        occupancyRate: Number(storedStatus.occupancyRate)
+    };
+
+    console.log('Applying status from local storage:', statusData);
+
+    // Update the UI elements
+    document.getElementById('availableSpaces').textContent = statusData.availableSpaces;
+    document.getElementById('occupiedSpaces').textContent = statusData.occupiedSpaces;
+    document.getElementById('occupancyRate').textContent = `${statusData.occupancyRate}%`;
+    
+    const bar = document.getElementById('occupancyBar');
+    bar.style.width = `${statusData.occupancyRate}%`;
+    updateOccupancyBarColor(bar, statusData.occupancyRate);
+    
+    document.getElementById('lastUpdated').textContent = new Date(statusData.lastUpdated)
+        .toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+    const mainStatus = document.getElementById('mainStatus');
+    mainStatus.className = `status-card card shadow-sm mb-4 status-${statusData.parkingStatus}`;
+    mainStatus.classList.add('update-animation');
+    setTimeout(() => mainStatus.classList.remove('update-animation'), 1000);
+    
+    updateDataStorageTime();
+}
+
 export function updateStatus(data, source = 'unknown') {
     const now = Date.now();
     const isImageUpdate = data.lastAnalysis !== undefined;
