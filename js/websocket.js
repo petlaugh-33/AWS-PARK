@@ -11,94 +11,101 @@ export function connect() {
     isConnecting = true;
 
     const connectionStatus = document.getElementById('connectionStatus');
-    connectionStatus.className = 'alert alert-secondary';
-    connectionStatus.textContent = 'Connecting...';
+    if (connectionStatus) {
+        connectionStatus.className = 'alert alert-secondary';
+        connectionStatus.textContent = 'Connecting...';
+    }
 
     try {
         socket = new WebSocket(WEBSOCKET_URL);
 
         socket.onopen = () => {
-            console.log('WebSocket connected');
+            console.log('[WebSocket] ✅ Connected');
             isConnecting = false;
             reconnectAttempts = 0;
-            connectionStatus.className = 'alert alert-success';
-            connectionStatus.textContent = 'Connected';
+
+            if (connectionStatus) {
+                connectionStatus.className = 'alert alert-success';
+                connectionStatus.textContent = 'Connected';
+            }
+
             startHeartbeat();
         };
 
         socket.onclose = () => {
             isConnecting = false;
-            connectionStatus.className = 'alert alert-warning';
-            connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+
+            if (connectionStatus) {
+                connectionStatus.className = 'alert alert-warning';
+                connectionStatus.textContent = 'Disconnected - Attempting to reconnect...';
+            }
 
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                 reconnectAttempts++;
                 setTimeout(connect, 2000);
             } else {
-                connectionStatus.className = 'alert alert-danger';
-                connectionStatus.textContent = 'Connection failed - Please refresh the page';
+                if (connectionStatus) {
+                    connectionStatus.className = 'alert alert-danger';
+                    connectionStatus.textContent = 'Connection failed - Please refresh the page';
+                }
             }
         };
 
         socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
+            console.error('[WebSocket] ❌ Error:', error);
             isConnecting = false;
-            connectionStatus.className = 'alert alert-danger';
-            connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+
+            if (connectionStatus) {
+                connectionStatus.className = 'alert alert-danger';
+                connectionStatus.textContent = 'Connection error - Will attempt to reconnect';
+            }
         };
 
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 const timestamp = new Date().toLocaleTimeString();
-
                 console.log(`[WebSocket] Raw message at ${timestamp}:`, data);
 
                 if (data.type === 'status_update') {
                     const statusData = data.data;
-                    const isImageUpdate = statusData?.lastAnalysis !== undefined;
-
                     console.log('Available:', statusData?.availableSpaces);
                     console.log('Occupied:', statusData?.occupiedSpaces);
                     console.log('Rate:', statusData?.occupancyRate + '%');
-                    console.log('Has lastAnalysis?', isImageUpdate);
+                    console.log('Has lastAnalysis?', !!statusData?.lastAnalysis);
 
-                    if (isImageUpdate) {
+                    if (statusData && statusData.lastAnalysis) {
                         console.log('[WebSocket] ✅ Applying image-based status update');
-                        updateStatus(statusData, 'image'); // UI update
+                        updateStatus(statusData, 'image');
+                        addToHistory(statusData);
                     } else {
-                        console.log('[WebSocket] 💾 Heartbeat - saving to localStorage only');
-                        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, {
-                            ...statusData,
-                            lastUpdated: new Date().toISOString()
-                        });
+                        console.warn('[WebSocket] ⛔ Ignoring non-image status update');
                     }
-
-                    addToHistory(statusData); // always update history
                 }
 
                 else if (data.type === 'reservation_update') {
-                    console.log(`[${timestamp}] RESERVATION UPDATE:`);
-                    console.log('Action:', data.action);
-
+                    console.log(`[WebSocket] 📢 Reservation Update: ${data.action}`);
                     loadUserReservations();
                     if (data.action === 'create' || data.action === 'cancel') {
-                        console.log('[Reservation] Triggering parking status update');
+                        console.log('[WebSocket] 🔄 Triggering parking status update');
                         updateParkingStatus();
                     }
                 }
 
             } catch (error) {
-                console.error('Error processing message:', error);
+                console.error('[WebSocket] ❌ Error processing message:', error);
                 console.error('Raw message:', event.data);
             }
         };
 
     } catch (error) {
-        console.error('Error creating WebSocket:', error);
+        console.error('[WebSocket] ❌ Creation error:', error);
         isConnecting = false;
-        connectionStatus.className = 'alert alert-danger';
-        connectionStatus.textContent = 'Failed to create connection';
+
+        if (connectionStatus) {
+            connectionStatus.className = 'alert alert-danger';
+            connectionStatus.textContent = 'Failed to create connection';
+        }
     }
 }
 
