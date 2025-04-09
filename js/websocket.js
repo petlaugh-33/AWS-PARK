@@ -69,6 +69,7 @@ export function connect() {
 
                 if (data.type === 'status_update') {
                     const statusData = data.data;
+
                     console.log('Available:', statusData?.availableSpaces);
                     console.log('Occupied:', statusData?.occupiedSpaces);
                     console.log('Rate:', statusData?.occupancyRate + '%');
@@ -79,7 +80,8 @@ export function connect() {
                         updateStatus(statusData, 'image');
                         addToHistory(statusData);
                     } else {
-                        console.warn('[WebSocket] ⛔ Ignoring non-image status update');
+                        console.log('[WebSocket] 💾 Caching non-image status to storage only');
+                        saveToLocalStorage(STORAGE_KEYS.CURRENT_STATUS, statusData);
                     }
                 }
 
