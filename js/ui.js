@@ -13,27 +13,35 @@ function convertToEST(dateString) {
 }
 
 // Initialize UI
-export function initializeUI() {
-    loadLastOccupancy();
+async function initializeApp() {
+    console.log('Initializing application...');
 
-    const savedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
-    if (savedStatus && savedStatus.lastAnalysis) {
-        console.log('[initializeUI] Applying cached occupancy immediately:', savedStatus);
-        updateStatus(savedStatus, 'initial_load');
-    } else {
-        console.warn('[initializeUI] No valid cached status found; waiting for WebSocket.');
+    const user = getCurrentUser();
+    if (!user) {
+        console.log('Authentication check failed. Redirecting to login.');
+        redirectToLogin();
+        return;
     }
-
-    const savedHistory = loadFromLocalStorage(STORAGE_KEYS.HISTORY);
-    if (savedHistory) {
-        updateHistoryTable(savedHistory);
+    
+    console.log('Authentication successful. Continuing initialization for user:', user.email);
+    initializeStorage();
+    
+    // Load the cached status and apply it immediately
+    const cachedStatus = loadFromLocalStorage(STORAGE_KEYS.CURRENT_STATUS);
+    if (cachedStatus) {
+        console.log('[App] Using cached image status:', cachedStatus);
+        updateStatus(cachedStatus, 'local');  // This saves it (if needed) and updates the UI from local storage.
     }
+    
+    initializeUI();
+    initializeWebSocketWithAuth();
+    initializeReservationSystem();
+    updateUserInterface(user);
 
-    const lastChartType = loadFromLocalStorage(STORAGE_KEYS.LAST_CHART_TYPE) || CHART_TYPES.DAILY;
-    loadHistoricalData(lastChartType);
+    setInterval(cleanupStorageData, 60 * 60 * 1000);
+    setupTabNavigation();
 
-    switchTab('homeTab');
-    updateDataStorageTime();
+    console.log('Application initialization complete.');
 }
 
 // Tab switching functionality
