@@ -145,9 +145,21 @@
         </div>
     </nav>
      <!-- Main Container -->
-     <div class="container py-4">
+    <div class="container py-4">
         <!-- Home Page -->
         <div id="homePage">
+            <!-- Connection Status Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Connection Status</h5>
+                    <div id="connectionStatus" class="alert alert-secondary">
+                        Connecting...
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="window.manualReconnect()">
+                        Reconnect
+                    </button>
+                </div>
+            </div>
             <!-- Main Status Card -->
             <div class="status-card card shadow-sm mb-4" id="mainStatus">
                 <div class="card-body">
