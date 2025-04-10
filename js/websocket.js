@@ -85,10 +85,7 @@ export function connect() {
 
                 else if (data.type === 'reservation_update') {
                     console.log(`[WebSocket] 📢 Reservation Update: ${data.action}`);
-                    loadUserReservations();
-
-                    // ❌ Removed updateParkingStatus to prevent UI flicker
-                    // If needed: we can update reservation stats in storage without touching UI
+                    loadUserReservations(); // ✅ Updates table + stats, not main status
                 }
 
             } catch (error) {
