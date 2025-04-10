@@ -69,23 +69,24 @@ export function connect() {
 
                 if (data.type === 'status_update') {
                     const statusData = data.data;
+
                     console.log('Available:', statusData?.availableSpaces);
                     console.log('Occupied:', statusData?.occupiedSpaces);
                     console.log('Rate:', statusData?.occupancyRate + '%');
                     console.log('Has lastAnalysis?', !!statusData?.lastAnalysis);
 
-                    if (statusData && statusData.lastAnalysis) {
-                        console.log('[WebSocket] ✅ Applying image-based status update');
-                        updateStatus(statusData, 'image');
+                    // ✅ Always update the main UI (image or reservation)
+                    updateStatus(statusData, statusData.lastAnalysis ? 'image' : 'realtime');
+
+                    // Only add to history if this was from an image
+                    if (statusData.lastAnalysis) {
                         addToHistory(statusData);
-                    } else {
-                        console.warn('[WebSocket] ⛔ Ignoring non-image status update');
                     }
                 }
 
                 else if (data.type === 'reservation_update') {
                     console.log(`[WebSocket] 📢 Reservation Update: ${data.action}`);
-                    loadUserReservations(); // ✅ Updates table + stats, not main status
+                    loadUserReservations(); // Still safe — this doesn't overwrite status anymore
                 }
 
             } catch (error) {
