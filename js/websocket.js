@@ -69,26 +69,15 @@ export function connect() {
 
                 if (data.type === 'status_update') {
                     const statusData = data.data;
+                    const isImage = !!statusData?.lastAnalysis;
 
-                    console.log('Available:', statusData?.availableSpaces);
-                    console.log('Occupied:', statusData?.occupiedSpaces);
-                    console.log('Rate:', statusData?.occupancyRate + '%');
-                    console.log('Has lastAnalysis?', !!statusData?.lastAnalysis);
+                    updateStatus(statusData, isImage ? 'image' : 'realtime');
 
-                    // ✅ Always update the main UI (image or reservation)
-                    updateStatus(statusData, statusData.lastAnalysis ? 'image' : 'realtime');
-
-                    // Only add to history if this was from an image
-                    if (statusData.lastAnalysis) {
-                        addToHistory(statusData);
-                    }
-                }
-
-                else if (data.type === 'reservation_update') {
+                    if (isImage) addToHistory(statusData);
+                } else if (data.type === 'reservation_update') {
                     console.log(`[WebSocket] 📢 Reservation Update: ${data.action}`);
-                    loadUserReservations(); // Still safe — this doesn't overwrite status anymore
+                    loadUserReservations();
                 }
-
             } catch (error) {
                 console.error('[WebSocket] ❌ Error processing message:', error);
                 console.error('Raw message:', event.data);
@@ -132,3 +121,4 @@ export function manualReconnect() {
 export function closeConnection() {
     if (socket) socket.close();
 }
+
