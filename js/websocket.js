@@ -100,7 +100,7 @@ export function startHeartbeat() {
         if (socket && socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ action: 'heartbeat' }));
         }
-    }, 30000);
+    }, 3000);
 }
 
 export function monitorConnection() {
