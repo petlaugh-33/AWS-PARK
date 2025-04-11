@@ -177,23 +177,45 @@ class ParkingDashboard {
             const parsedData = JSON.parse(responseData.body);
             console.log('Parsed response:', parsedData);
     
-            // Update chart with API data
-            this.chart.data.labels = parsedData.labels;  // Use API labels
-            this.chart.data.datasets[0].data = parsedData.data;
-            
-            // Configure x-axis based on timeframe
-            this.chart.options.scales.x = {
-                type: 'category',
-                title: {
-                    display: true,
-                    text: this.timeframe === 'weekly' ? 'Day of Week' : 'Hour of Day',
-                    font: { weight: 'bold' }
-                },
-                ticks: {
-                    autoSkip: false,
-                    maxRotation: 45
-                }
-            };
+            // Set chart data based on timeframe
+            if (this.timeframe === 'weekly') {
+                console.log('Setting up weekly view');
+                // Keep the explicit weekly labels
+                this.chart.data.labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                this.chart.data.datasets[0].data = parsedData.data;
+                
+                // Configure x-axis for weekly view
+                this.chart.options.scales.x = {
+                    type: 'category',
+                    title: {
+                        display: true,
+                        text: 'Day of Week',
+                        font: { weight: 'bold' }
+                    },
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 45
+                    }
+                };
+            } else {
+                console.log('Setting up daily view');
+                this.chart.data.labels = parsedData.labels;
+                this.chart.data.datasets[0].data = parsedData.data;
+                
+                // Configure x-axis for daily view
+                this.chart.options.scales.x = {
+                    type: 'category',
+                    title: {
+                        display: true,
+                        text: 'Hour of Day',
+                        font: { weight: 'bold' }
+                    },
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 45
+                    }
+                };
+            }
     
             this.chart.options.plugins.title.text = 
                 `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
