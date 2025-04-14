@@ -162,72 +162,62 @@ class ParkingDashboard {
         try {
             this.showLoading();
             this.updateDateTime();
-    
-            const url = `${this.apiEndpoint}?timeframe=${this.timeframe}`;
-            console.log('Calling API with URL:', url);
-            
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch dashboard data');
-            }
-            
-            const responseData = await response.json();
-            console.log('Raw API Response:', responseData);
-    
-            // Parse the nested body property
-            const parsedData = JSON.parse(responseData.body);
-            console.log('Parsed Chart Data:', parsedData);
-    
-            // Set chart data based on timeframe
+
             if (this.timeframe === 'weekly') {
-                console.log('Setting up weekly view');
-                // Set weekly labels explicitly
-                this.chart.data.labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                this.chart.data.datasets[0].data = parsedData.data;
-                
-                // Configure x-axis for weekly view
-                this.chart.options.scales.x = {
-                    type: 'category',
-                    title: {
-                        display: true,
-                        text: 'Day of Week',
-                        font: { weight: 'bold' }
-                    },
-                    ticks: {
-                        autoSkip: false,
-                        maxRotation: 45
-                    }
+                // Static weekly data
+                const weeklyData = {
+                    labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                    data: [25, 65, 80, 85, 82, 70, 30]  // Example occupancy percentages
                 };
+
+                this.updateChart(weeklyData, 'Day of Week');
             } else {
-                console.log('Setting up daily view');
-                this.chart.data.labels = parsedData.labels;
-                this.chart.data.datasets[0].data = parsedData.data;
+                // Fetch daily data from API
+                const url = `${this.apiEndpoint}?timeframe=daily`;
+                console.log('Calling API with URL:', url);
                 
-                // Configure x-axis for daily view
-                this.chart.options.scales.x = {
-                    type: 'category',
-                    title: {
-                        display: true,
-                        text: 'Hour of Day',
-                        font: { weight: 'bold' }
-                    },
-                    ticks: {
-                        autoSkip: false,
-                        maxRotation: 45
-                    }
-                };
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch dashboard data');
+                }
+                
+                const responseData = await response.json();
+                console.log('Raw API Response:', responseData);
+
+                const parsedData = JSON.parse(responseData.body);
+                console.log('Parsed Chart Data:', parsedData);
+
+                this.updateChart(parsedData, 'Hour of Day');
             }
-    
-            this.chart.options.plugins.title.text = 
-                `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
-    
-            this.chart.update();
+
             this.hideLoading();
-    
         } catch (error) {
             console.error('Data loading error:', error);
             this.showError('Failed to load dashboard data');
         }
+    }
+
+    updateChart(data, xAxisLabel) {
+        this.chart.data.labels = data.labels;
+        this.chart.data.datasets[0].data = data.data;
+
+        this.chart.options.scales.x = {
+            type: 'category',
+            title: {
+                display: true,
+                text: xAxisLabel,
+                font: { weight: 'bold' }
+            },
+            ticks: {
+                autoSkip: false,
+                maxRotation: 45
+            }
+        };
+
+        this.chart.options.plugins.title.text = 
+            `Parking Occupancy - ${this.timeframe.charAt(0).toUpperCase() + this.timeframe.slice(1)} View`;
+
+        this.chart.update();
     }
     
 }
