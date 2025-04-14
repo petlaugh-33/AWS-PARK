@@ -181,7 +181,8 @@ class ParkingDashboard {
             // Set chart data based on timeframe
             if (this.timeframe === 'weekly') {
                 console.log('Setting up weekly view');
-                this.chart.data.labels = parsedData.labels;
+                // Set weekly labels explicitly
+                this.chart.data.labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
                 this.chart.data.datasets[0].data = parsedData.data;
                 
                 // Configure x-axis for weekly view
@@ -228,6 +229,7 @@ class ParkingDashboard {
             this.showError('Failed to load dashboard data');
         }
     }
+    
 }
 
 // Initialize dashboard when the analysis page is shown
