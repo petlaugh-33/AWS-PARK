@@ -167,7 +167,7 @@ class ParkingDashboard {
                 // Static weekly data
                 const weeklyData = {
                     labels: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-                    data: [25, 65, 80, 85, 82, 70, 30]  // Example occupancy percentages
+                    data: [2, 75, 90, 85, 82, 55, 5]  // Example occupancy percentages
                 };
 
                 this.updateChart(weeklyData, 'Day of Week');
