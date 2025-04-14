@@ -171,17 +171,14 @@ class ParkingDashboard {
                 throw new Error('Failed to fetch dashboard data');
             }
             
-            const responseData = await response.json();
-            console.log('Raw API Response:', responseData);
-    
-            const parsedData = JSON.parse(responseData.body);
-            console.log('Parsed response:', parsedData);
+            const parsedData = await response.json();
+            console.log('Parsed API Response:', parsedData);
     
             // Set chart data based on timeframe
             if (this.timeframe === 'weekly') {
                 console.log('Setting up weekly view');
-                // Keep the explicit weekly labels
-                this.chart.data.labels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                // Use the labels from the API response
+                this.chart.data.labels = parsedData.labels;
                 this.chart.data.datasets[0].data = parsedData.data;
                 
                 // Configure x-axis for weekly view
